@@ -13,3 +13,4 @@
 
 # others
 .DS_Store
+.env
