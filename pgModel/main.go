@@ -19,9 +19,9 @@ func CheckPasswordHash(password, hash string) bool {
 }
 
  
- func (u User) String() string {
+func (u User) String() string {
 	return fmt.Sprintf("User<%d %s %v>", u.Id, u.Username, u.Email)
- }
+}
 
  func Connect() *pg.DB {
 	gotenv.Load()

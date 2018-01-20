@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-
+	. "WeKnow_api/controller"
+	. "WeKnow_api/middlewares"
 	"github.com/gorilla/mux"
 )
 
@@ -19,7 +20,10 @@ func main() {
 	r := mux.NewRouter()
 
 	// Routes consist of a path and a handler function.
-	r.HandleFunc("/", HomeHandler).Methods("GET")
+	r.HandleFunc("/", LoggingHandler(HomeHandler)).Methods("GET")
+
+	r.HandleFunc("/api/v1/user/signup", LoggingHandler(UserSignUpEndPoint)).Methods("POST")
+	r.HandleFunc("/api/v1/user/signin", LoggingHandler(UserSignInEndPoint)).Methods("POST")
 
 	// Bind to a port and pass our router in
 	log.Fatal(http.ListenAndServe(":3000", r))
