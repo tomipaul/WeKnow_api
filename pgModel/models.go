@@ -2,11 +2,12 @@ package pgModel
 
 import (
 	"fmt"
+	"os"
 	"time"
 
-	"WeKnow_api/utilities"
-
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-pg/pg/orm"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type BaseModel struct {
@@ -44,8 +45,7 @@ type User struct {
 	Email       string `sql:",unique,notnull"`
 	Password    string
 	PhoneNumber string
-	Messages    []*Message
-	Connections []*Connection
+	Connections []*Connection `pg:",many2many:user_connections"`
 	Comments    []*Comment
 	Collections []*Collection
 	Resources   []*Resource
@@ -60,7 +60,7 @@ func (u *User) BeforeInsert(db orm.DB) error {
 	if err := u.BaseModel.BeforeInsert(db); err != nil {
 		return err
 	}
-	hashed, error := utilities.HashPassword(u.Password)
+	hashed, error := u.HashPassword()
 	if error != nil {
 		return error
 	}
@@ -69,7 +69,7 @@ func (u *User) BeforeInsert(db orm.DB) error {
 }
 
 func (u *User) BeforeUpdate(db orm.DB) error {
-	hashed, error := utilities.HashPassword(u.Password)
+	hashed, error := u.HashPassword()
 	if error != nil {
 		return error
 	}
@@ -77,18 +77,49 @@ func (u *User) BeforeUpdate(db orm.DB) error {
 	return nil
 }
 
+// HashPassword hash password before storage to database
+func (u *User) HashPassword() (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(u.Password), 14)
+	return string(bytes), err
+}
+
+// CompareHashAndPassword compare stored hash with plain text password
+func (u *User) CompareHashAndPassword(password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	return err == nil
+}
+
+// GenerateToken generate authorization token
+func (u User) GenerateToken() (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userId":      u.Id,
+		"username":    u.Username,
+		"email":       u.Email,
+		"phoneNumber": u.PhoneNumber,
+		"iss":         os.Getenv("ISSUER"),
+		"exp":         time.Now().Add(time.Hour * 24).Unix(),
+	})
+	HMACSecret := os.Getenv("JWT_SECRET")
+	tokenString, error := token.SignedString([]byte(HMACSecret))
+	if error != nil {
+		return "", error
+	}
+	return tokenString, nil
+}
+
 type Connection struct {
 	Id           int64
 	FirstUserId  int64
 	SecondUserId int64
+	Messages     []*Message
+	Users        []*User `pg:",many2many:user_connections"`
 	BaseModel
 }
 
 type Message struct {
 	Id         int64
-	SenderId   int64
-	ReceiverId int64
 	Content    string
+	Connection *Connection
 	BaseModel
 }
 
@@ -158,4 +189,9 @@ type ResourceTag struct {
 type CollectionTag struct {
 	TagId        int64 `sql:",pk"`
 	CollectionId int64 `sql:",pk"`
+}
+
+type UserConnection struct {
+	UserId       int64 `sql:",pk"`
+	ConnectionId int64 `sql:",pk"`
 }
