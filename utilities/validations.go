@@ -19,18 +19,18 @@ func ValidateSignUpRequest(user User) (interface{}, bool) {
 	user.PhoneNumber = strings.TrimSpace(user.PhoneNumber)
 
 	if user.Username == "" {
-		return createErrorMessage("username", "Username is required"), true
+		return CreateErrorMessage("username", "Username is required"), true
 	}
 	if user.Password == "" {
-		return createErrorMessage("password", "Password is required"), true
+		return CreateErrorMessage("password", "Password is required"), true
 	}
 	if user.Email == "" {
-		return createErrorMessage("email", "Email is required"), true
+		return CreateErrorMessage("email", "Email is required"), true
 	} else if re.MatchString(user.Email) != true {
-		return createErrorMessage("email", "Please enter a valid email"), true
+		return CreateErrorMessage("email", "Please enter a valid email"), true
 	}
 	if len(user.PhoneNumber) < 11 || len(user.PhoneNumber) > 11 {
-		return createErrorMessage("phoneNumber", "Valid phone number is required"), true
+		return CreateErrorMessage("phoneNumber", "Valid phone number is required"), true
 	}
 
 	return fallback, false
@@ -40,12 +40,12 @@ func ValidateSignInRequest(user User) (interface{}, bool) {
 	re := regexp.MustCompile(EXP_EMAIL)
 
 	if user.Email == "" {
-		return createErrorMessage("email", "Email is required"), true
+		return CreateErrorMessage("email", "Email is required"), true
 	} else if re.MatchString(user.Email) != true {
-		return createErrorMessage("email", "Please enter a valid email"), true
+		return CreateErrorMessage("email", "Please enter a valid email"), true
 	}
 	if user.Password == "" {
-		return createErrorMessage("password", "Password is required"), true
+		return CreateErrorMessage("password", "Password is required"), true
 	}
 
 	return fallback, false
