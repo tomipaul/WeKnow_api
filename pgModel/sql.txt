@@ -1,0 +1,3 @@
+ALTER TABLE user_connections
+ADD FOREIGN KEY(user_id) REFERENCES users (id),
+ADD FOREIGN KEY(connection_id) REFERENCES connections (id)

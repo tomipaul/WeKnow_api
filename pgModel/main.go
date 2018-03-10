@@ -2,9 +2,11 @@ package pgModel
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/orm"
 	"github.com/subosito/gotenv"
 )
 
@@ -40,9 +42,19 @@ func createSchema(db *pg.DB) error {
 		&CollectionTag{},
 		&UserConnection{},
 	} {
-		if err := db.CreateTable(model, nil); err != nil {
-			return nil
+		if err := db.CreateTable(
+			model,
+			&orm.CreateTableOptions{IfNotExists: true},
+		); err != nil {
+			return err
 		}
+	}
+	content, err := ioutil.ReadFile("pgModel/sql.txt")
+	if err != nil {
+		return err
+	}
+	if _, err := db.Exec(string(content)); err != nil {
+		return err
 	}
 	return nil
 }

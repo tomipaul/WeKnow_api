@@ -108,11 +108,10 @@ func (u User) GenerateToken() (string, error) {
 }
 
 type Connection struct {
-	Id           int64
-	FirstUserId  int64
-	SecondUserId int64
-	Messages     []*Message
-	Users        []*User `pg:",many2many:user_connections"`
+	Id          int64
+	InitiatorId int64   `sql:"unique:connected_users"`
+	RecipientId int64   `sql:"unique:connected_users"`
+	Users       []*User `pg:",many2many:user_connections"`
 	BaseModel
 }
 

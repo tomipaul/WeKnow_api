@@ -32,6 +32,12 @@ func main() {
 		HandleFunc("/signin", ctrl.UserSignInEndPoint).
 		Methods("POST")
 
+	connectionSubRouter := r.NewRoute().Subrouter()
+	connectionSubRouter.Use(mwr.ValidateEndpoint)
+	connectionSubRouter.
+		HandleFunc("/api/v1/connection", ctrl.ConnectUser).
+		Methods("POST")
+
 	// Bind to a port and pass our router in
 	log.Fatal(http.ListenAndServe(":3000", r))
 }
