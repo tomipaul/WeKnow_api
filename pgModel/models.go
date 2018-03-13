@@ -161,7 +161,7 @@ func (r Resource) String() string {
 type Collection struct {
 	Id        int64
 	Name      string `sql:",unique,notnull"`
-	UserId    int64
+	UserId    int64 
 	Resources []*Resource
 	Tags      []Tag `pg:",many2many:collection_tags"`
 	BaseModel

@@ -52,13 +52,8 @@ func UserSignInEndPoint(w http.ResponseWriter, r *http.Request) {
 		if err, errStatus := utils.ValidateSignInRequest(*user); errStatus != true {
 			var foundUser User
 			if err := db.Model(&foundUser).Where("Email = ?", user.Email).Select(); err != nil {
-<<<<<<< HEAD
-				if err.Error() == "pg: no rows in result set" {
-					utils.RespondWithJsonError(w, 401, utils.CreateErrorMessage("message", "Invalid signin parameters"))
-=======
 				if err.Error() == "pg: no rows in result set"{
 					utils.RespondWithError(w, http.StatusUnauthorized, "Invalid signin parameters")
->>>>>>> fix(error):
 					return
 				}
 				utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -67,11 +62,7 @@ func UserSignInEndPoint(w http.ResponseWriter, r *http.Request) {
 					token, _ := foundUser.GenerateToken()
 					utils.RespondWithSuccess(w, http.StatusOK, token, "token")
 				} else {
-<<<<<<< HEAD
-					utils.RespondWithJsonError(w, 401, utils.CreateErrorMessage("message", "Invalid signin parameters"))
-=======
 					utils.RespondWithError(w, http.StatusUnauthorized, "Invalid signin parameters")
->>>>>>> fix(error):
 					return
 				}
 			}

@@ -38,6 +38,10 @@ func main() {
 		HandleFunc("/api/v1/connection", ctrl.ConnectUser).
 		Methods("POST")
 
+	connectionSubRouter.
+		HandleFunc("/api/v1/collection", ctrl.CreateCollectionEndPoint).
+		Methods("POST")
+
 	// Bind to a port and pass our router in
 	log.Fatal(http.ListenAndServe(":3000", r))
 }

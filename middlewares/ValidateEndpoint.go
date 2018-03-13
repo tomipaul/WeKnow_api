@@ -25,16 +25,16 @@ func ValidateEndpoint(next http.Handler) http.Handler {
 					return []byte(os.Getenv("JWT_SECRET")), nil
 				})
 				if error != nil {
-					utils.RespondWithError(w, 401, error.Error())
+					utils.RespondWithError(w, http.StatusUnauthorized, error.Error())
 				} else if token.Valid {
 					context.Set(r, "decoded", token.Claims)
 					next.ServeHTTP(w, r)
 				} else {
-					utils.RespondWithError(w, 401, "Invalid authorization token")
+					utils.RespondWithError(w, http.StatusUnauthorized, "Invalid authorization token")
 				}
 			}
 		} else {
-			utils.RespondWithError(w, 401, "An authorization header is required")
+			utils.RespondWithError(w, http.StatusUnauthorized, "An authorization header is required")
 		}
 		return
 	})
