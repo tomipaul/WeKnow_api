@@ -144,3 +144,34 @@ func ConnectUser(w http.ResponseWriter, r *http.Request) {
 	}
 	return
 }
+
+// GetAllFavorites get all the favorites of a user
+func GetAllFavorites(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	decodedClaims := context.Get(r, "decoded")
+	userId := decodedClaims.(jwt.MapClaims)["userId"].(float64)
+	var connection []Connection
+	err := db.Model(&connection).
+		Column(
+			"connection.id",
+			"initiator_id",
+			"recipient_id",
+			"connection.created_at",
+			"Recipient.id",
+			"Recipient.email",
+			"Recipient.username",
+		).
+		Where("initiator_id = ?", int(userId)).
+		Select()
+	if err != nil {
+		utils.RespondWithError(
+			w, http.StatusInternalServerError,
+			"Something went wong",
+		)
+	} else {
+		payload := map[string][]Connection{
+			"connections": connection,
+		}
+		utils.RespondWithJson(w, http.StatusOK, payload)
+	}
+}

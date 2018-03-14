@@ -11,23 +11,24 @@ import (
 )
 
 type BaseModel struct {
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt *time.Time `json:",omitempty"`
+	UpdatedAt *time.Time `json:",omitempty"`
 }
 
 func (bm *BaseModel) BeforeInsert(db orm.DB) error {
 	now := time.Now()
 	if bm.CreatedAt.IsZero() {
-		bm.CreatedAt = now
+		bm.CreatedAt = &now
 	}
 	if bm.UpdatedAt.IsZero() {
-		bm.UpdatedAt = now
+		bm.UpdatedAt = &now
 	}
 	return nil
 }
 
 func (bm *BaseModel) BeforeUpdate(db orm.DB) error {
-	bm.UpdatedAt = time.Now()
+	now := time.Now()
+	bm.UpdatedAt = &now
 	return nil
 }
 
@@ -40,15 +41,15 @@ type Exception struct {
 }
 
 type User struct {
-	Id          int64
-	Username    string
-	Email       string `sql:",unique,notnull"`
-	Password    string
-	PhoneNumber string
-	Connections []*Connection `pg:",many2many:user_connections"`
-	Comments    []*Comment
-	Collections []*Collection
-	Resources   []*Resource
+	Id          int64         `json:",omitempty"`
+	Username    string        `json:",omitempty"`
+	Email       string        `sql:",unique,notnull" json:",omitempty"`
+	Password    string        `json:",omitempty"`
+	PhoneNumber string        `json:",omitempty"`
+	Connections []*Connection `pg:",many2many:user_connections" json:",omitempty"`
+	Comments    []*Comment    `json:",omitempty"`
+	Collections []*Collection `json:",omitempty"`
+	Resources   []*Resource   `json:",omitempty"`
 	BaseModel
 }
 
@@ -108,10 +109,12 @@ func (u User) GenerateToken() (string, error) {
 }
 
 type Connection struct {
-	Id          int64
-	InitiatorId int64   `sql:"unique:connected_users"`
-	RecipientId int64   `sql:"unique:connected_users"`
-	Users       []*User `pg:",many2many:user_connections"`
+	Id          int64  `json:",omitempty"`
+	InitiatorId int64  `sql:"unique:connected_users" json:",omitempty"`
+	RecipientId int64  `sql:"unique:connected_users" json:",omitempty"`
+	Recipient   *User  `json:",omitempty"`
+	Initiator   *User  `json:",omitempty"`
+	Users       []User `pg:",many2many:user_connections" json:",omitempty"`
 	BaseModel
 }
 
