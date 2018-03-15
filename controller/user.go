@@ -52,7 +52,7 @@ func UserSignInEndPoint(w http.ResponseWriter, r *http.Request) {
 		if err, errStatus := utils.ValidateSignInRequest(*user); errStatus != true {
 			var foundUser User
 			if err := db.Model(&foundUser).Where("Email = ?", user.Email).Select(); err != nil {
-				if err.Error() == "pg: no rows in result set"{
+				if err.Error() == "pg: no rows in result set" {
 					utils.RespondWithError(w, http.StatusUnauthorized, "Invalid signin parameters")
 					return
 				}
@@ -162,6 +162,37 @@ func GetAllFavorites(w http.ResponseWriter, r *http.Request) {
 			"Recipient.username",
 		).
 		Where("initiator_id = ?", int(userId)).
+		Select()
+	if err != nil {
+		utils.RespondWithError(
+			w, http.StatusInternalServerError,
+			"Something went wong",
+		)
+	} else {
+		payload := map[string][]Connection{
+			"connections": connection,
+		}
+		utils.RespondWithJson(w, http.StatusOK, payload)
+	}
+}
+
+// GetAllFollowers get all the followers of a user
+func GetAllFollowers(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	decodedClaims := context.Get(r, "decoded")
+	userId := decodedClaims.(jwt.MapClaims)["userId"].(float64)
+	var connection []Connection
+	err := db.Model(&connection).
+		Column(
+			"connection.id",
+			"initiator_id",
+			"recipient_id",
+			"connection.created_at",
+			"Initiator.id",
+			"Initiator.email",
+			"Initiator.username",
+		).
+		Where("recipient_id = ?", int(userId)).
 		Select()
 	if err != nil {
 		utils.RespondWithError(

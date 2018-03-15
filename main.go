@@ -48,12 +48,16 @@ func main() {
 	connectionSubRouter.
 		HandleFunc("/favorites", ctrl.GetAllFavorites).
 		Methods("GET")
+	connectionSubRouter.
+		HandleFunc("/followers", ctrl.GetAllFollowers).
+		Methods("GET")
 
 	// Handle collection requests
 	collectionSubRouter := pr.PathPrefix("/api/v1/collection").Subrouter()
 	collectionSubRouter.
 		HandleFunc("", ctrl.CreateCollectionEndPoint).
 		Methods("POST")
+
 	// Bind to a port and pass our router in
 	log.Fatal(http.ListenAndServe(":3000", r))
 }
