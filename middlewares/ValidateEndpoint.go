@@ -16,6 +16,10 @@ func ValidateEndpoint(next http.Handler) http.Handler {
 		authorizationHeader := r.Header.Get("authorization")
 		if authorizationHeader != "" {
 			bearerToken := strings.Split(authorizationHeader, " ")
+			if bearerToken[0] != "Bearer" {
+				utils.RespondWithError(w, http.StatusUnauthorized, "Bearer should be added before token")
+				return
+			}
 			if len(bearerToken) == 2 {
 				token, error := jwt.Parse(bearerToken[1], func(token *jwt.Token) (interface{}, error) {
 					if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok ||
@@ -29,9 +33,9 @@ func ValidateEndpoint(next http.Handler) http.Handler {
 				} else if token.Valid {
 					context.Set(r, "decoded", token.Claims)
 					next.ServeHTTP(w, r)
-				} else {
-					utils.RespondWithError(w, http.StatusUnauthorized, "Invalid authorization token")
 				}
+			} else {
+				utils.RespondWithError(w, http.StatusUnauthorized, "Invalid authorization token")
 			}
 		} else {
 			utils.RespondWithError(w, http.StatusUnauthorized, "An authorization header is required")
