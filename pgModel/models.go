@@ -80,7 +80,7 @@ func (u *User) BeforeUpdate(db orm.DB) error {
 
 // HashPassword hash password before storage to database
 func (u *User) HashPassword() (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(u.Password), 14)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(u.Password), 10)
 	return string(bytes), err
 }
 

@@ -24,7 +24,7 @@ func UserSignUpEndPoint(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(user); err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 	} else {
-		if err, errStatus := utils.ValidateSignUpRequest(*user); errStatus != true {
+		if err := utils.ValidateSignUpRequest(*user); err == nil {
 			if err := db.Insert(user); err != nil {
 				if err.(pg.Error).Field('C') == "23505" {
 					utils.RespondWithError(w, http.StatusConflict, "User already exists")
@@ -32,10 +32,14 @@ func UserSignUpEndPoint(w http.ResponseWriter, r *http.Request) {
 			} else if token, err := user.GenerateToken(); err != nil {
 				utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
 			} else {
-				utils.RespondWithSuccess(w, http.StatusOK, token, "token")
+				payload := map[string]interface{}{
+					"token":   token,
+					"message": "Authentication successful",
+				}
+				utils.RespondWithJson(w, http.StatusOK, payload)
 			}
 		} else {
-			utils.RespondWithJsonError(w, http.StatusBadRequest, err)
+			utils.RespondWithJsonError(w, http.StatusBadRequest, err.Error())
 		}
 	}
 	return
@@ -49,7 +53,7 @@ func UserSignInEndPoint(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(user); err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 	} else {
-		if err, errStatus := utils.ValidateSignInRequest(*user); errStatus != true {
+		if err := utils.ValidateSignInRequest(*user); err == nil {
 			var foundUser User
 			if err := db.Model(&foundUser).Where("Email = ?", user.Email).Select(); err != nil {
 				if err.Error() == "pg: no rows in result set" {
@@ -60,14 +64,18 @@ func UserSignInEndPoint(w http.ResponseWriter, r *http.Request) {
 			} else {
 				if foundUser.CompareHashAndPassword(user.Password) == true {
 					token, _ := foundUser.GenerateToken()
-					utils.RespondWithSuccess(w, http.StatusOK, token, "token")
+					payload := map[string]interface{}{
+						"token":   token,
+						"message": "Authentication successful",
+					}
+					utils.RespondWithJson(w, http.StatusOK, payload)
 				} else {
 					utils.RespondWithError(w, http.StatusUnauthorized, "Invalid signin parameters")
 					return
 				}
 			}
 		} else {
-			utils.RespondWithJsonError(w, http.StatusUnauthorized, err)
+			utils.RespondWithJsonError(w, http.StatusUnauthorized, err.Error())
 		}
 	}
 	return

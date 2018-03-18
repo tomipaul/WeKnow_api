@@ -2,62 +2,55 @@ package utilities
 
 import (
 	. "WeKnow_api/pgModel"
+	"errors"
 	"regexp"
 	"strings"
 )
 
 const EXP_EMAIL = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 
-var fallback interface{}
-
-func ValidateSignUpRequest(user User) (interface{}, bool) {
+func ValidateSignUpRequest(user User) error {
 
 	re := regexp.MustCompile(EXP_EMAIL)
-
 	user.Username = strings.TrimSpace(user.Username)
-	user.Email = strings.TrimSpace(user.Email)
 	user.PhoneNumber = strings.TrimSpace(user.PhoneNumber)
+	user.Password = strings.TrimSpace(user.Password)
 
-	if user.Username == "" {
-		return createErrorMessage("username", "Username is required"), true
+	var err error
+	switch {
+	case user.Username == "":
+		err = errors.New("Username is required")
+	case user.Password == "":
+		err = errors.New("Password is required")
+	case re.MatchString(user.Email) != true:
+		err = errors.New("Please enter a valid email")
+	case len(user.PhoneNumber) < 11 || len(user.PhoneNumber) > 11:
+		err = errors.New("Valid phone number is required")
 	}
-	if user.Password == "" {
-		return createErrorMessage("password", "Password is required"), true
-	}
-	if user.Email == "" {
-		return createErrorMessage("email", "Email is required"), true
-	} else if re.MatchString(user.Email) != true {
-		return createErrorMessage("email", "Please enter a valid email"), true
-	}
-	if len(user.PhoneNumber) < 11 || len(user.PhoneNumber) > 11 {
-		return createErrorMessage("phoneNumber", "Valid phone number is required"), true
-	}
-
-	return fallback, false
+	return err
 }
 
-func ValidateSignInRequest(user User) (interface{}, bool) {
+func ValidateSignInRequest(user User) error {
+
 	re := regexp.MustCompile(EXP_EMAIL)
+	user.Password = strings.TrimSpace(user.Password)
 
-	if user.Email == "" {
-		return createErrorMessage("email", "Email is required"), true
-	} else if re.MatchString(user.Email) != true {
-		return createErrorMessage("email", "Please enter a valid email"), true
+	var err error
+	switch {
+	case re.MatchString(user.Email) != true:
+		err = errors.New("Please enter a valid email")
+	case user.Password == "":
+		err = errors.New("Password is required")
 	}
-	if user.Password == "" {
-		return createErrorMessage("password", "Password is required"), true
-	}
-
-	return fallback, false
+	return err
 }
 
-func ValidateNewCollection(coll Collection) (interface{}, bool) {
-	
+func ValidateNewCollection(coll Collection) error {
+
 	coll.Name = strings.TrimSpace(coll.Name)
-
+	var err error
 	if coll.Name == "" {
-		return createErrorMessage("name", "Collection name is required"), true
+		err = errors.New("Collection name is required")
 	}
-
-	return fallback, false
+	return err
 }
