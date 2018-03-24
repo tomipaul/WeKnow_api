@@ -82,4 +82,8 @@ func (app App) declareRoutes() {
 		HandleFunc("", hr.CreateCollectionEndPoint).
 		Methods("POST")
 
+	profileSubRouter := pr.PathPrefix("/api/v1/user").Subrouter()
+	profileSubRouter.
+		HandleFunc("/profile", hr.UpdateProfile).Methods("PUT")
+
 }

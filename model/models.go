@@ -42,7 +42,7 @@ type Exception struct {
 
 type User struct {
 	Id          int64         `json:",omitempty"`
-	Username    string        `json:",omitempty"`
+	Username    string        `sql:",unique,notnull" json:",omitempty"`
 	Email       string        `sql:",unique,notnull" json:",omitempty"`
 	Password    string        `json:",omitempty"`
 	PhoneNumber string        `json:",omitempty"`

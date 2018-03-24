@@ -9,10 +9,11 @@ import (
 
 const EXP_EMAIL = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 
+var re = regexp.MustCompile(EXP_EMAIL)
+
 // ValidateSignUpRequest validate inputs submitted for sign-up
 func ValidateSignUpRequest(user User) error {
 
-	re := regexp.MustCompile(EXP_EMAIL)
 	user.Username = strings.TrimSpace(user.Username)
 	user.PhoneNumber = strings.TrimSpace(user.PhoneNumber)
 	user.Password = strings.TrimSpace(user.Password)
@@ -34,7 +35,6 @@ func ValidateSignUpRequest(user User) error {
 // ValidateSignInRequest validate inputs submitted for sign-in
 func ValidateSignInRequest(user User) error {
 
-	re := regexp.MustCompile(EXP_EMAIL)
 	user.Password = strings.TrimSpace(user.Password)
 
 	var err error
@@ -54,6 +54,31 @@ func ValidateNewCollection(coll Collection) error {
 	var err error
 	if coll.Name == "" {
 		err = errors.New("Collection name is required")
+	}
+	return err
+}
+
+func ValidateProfileFields(user map[string]interface{}) error {
+
+	var err error
+	for key, value := range user {
+		switch key {
+		case "username":
+			if value.(string) == "" {
+				err = errors.New("Username cannot be empty")
+			}
+		case "email":
+			if re.MatchString(value.(string)) != true {
+				err = errors.New("Enter a valid email")
+			}
+
+		case "phoneNumber":
+			if value.(string) == "" {
+				err = errors.New("Phone number cannot be empty")
+			} else if len(value.(string)) < 11 || len(value.(string)) > 11 {
+				err = errors.New("Enter a valid phone number")
+			}
+		}
 	}
 	return err
 }

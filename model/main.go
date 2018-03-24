@@ -17,7 +17,7 @@ func Connect(config map[string]string) *pg.DB {
 	}
 	db := pg.Connect(dbConfig)
 
-	err := createSchema(db)
+	err := CreateSchema(db)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -26,7 +26,7 @@ func Connect(config map[string]string) *pg.DB {
 	return db
 }
 
-func createSchema(db *pg.DB) error {
+func CreateSchema(db *pg.DB) error {
 	for _, model := range []interface{}{
 		&User{},
 		&Message{},

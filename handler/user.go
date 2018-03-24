@@ -216,3 +216,54 @@ func (h *Handler) GetAllFollowers(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithJson(w, http.StatusOK, payload)
 	}
 }
+
+// UpdateProfile helps user update their profile
+func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	decodedClaims := context.Get(r, "decoded")
+	userId := decodedClaims.(jwt.MapClaims)["userId"].(float64)
+	var user map[string]interface{}
+	foundUser := &User{Id: int64(userId)}
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	if err := utils.ValidateProfileFields(user); err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	updatedFields := []string{}
+	for key, value := range user {
+		switch key {
+		case "username":
+			foundUser.Username = value.(string)
+			updatedFields = append(updatedFields, "username")
+		case "phoneNumber":
+			foundUser.PhoneNumber = value.(string)
+			updatedFields = append(updatedFields, "phone_number")
+		case "email":
+			foundUser.Email = value.(string)
+			updatedFields = append(updatedFields, "email")
+		}
+	}
+	res, err := h.Db.Model(foundUser).Column(updatedFields...).Update()
+
+	if err == nil {
+		if res.RowsAffected() == 0 {
+			utils.RespondWithJsonError(w, http.StatusNotFound, "User not found")
+			return
+		}
+		payload := map[string]interface{}{
+			"updatedProfile": user,
+			"message":        "Profile Updated successfully",
+		}
+		utils.RespondWithJson(w, http.StatusOK, payload)
+	} else {
+		utils.RespondWithError(
+			w, http.StatusInternalServerError,
+			"Something went wong",
+		)
+	}
+	return
+}
