@@ -23,7 +23,7 @@ func (h *Handler) CreateCollectionEndPoint(w http.ResponseWriter, r *http.Reques
 	} else {
 		decodedClaims := context.Get(r, "decoded")
 		userId := decodedClaims.(jwt.MapClaims)["userId"].(float64)
-		if err := utils.ValidateNewCollection(*collection); err == nil {
+		if err := utils.ValidateNewCollection(collection); err == nil {
 			collection.UserId = int64(userId)
 			if err := h.Db.Insert(collection); err != nil {
 				utils.RespondWithError(w, http.StatusInternalServerError, err.Error())

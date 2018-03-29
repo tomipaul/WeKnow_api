@@ -23,7 +23,7 @@ func (h *Handler) UserSignUpEndPoint(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(user); err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 	} else {
-		if err := utils.ValidateSignUpRequest(*user); err == nil {
+		if err := utils.ValidateSignUpRequest(user); err == nil {
 			if err := h.Db.Insert(user); err != nil {
 				if err.(pg.Error).Field('C') == "23505" {
 					utils.RespondWithError(w, http.StatusConflict, "User already exists")
@@ -52,7 +52,7 @@ func (h *Handler) UserSignInEndPoint(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(user); err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 	} else {
-		if err := utils.ValidateSignInRequest(*user); err == nil {
+		if err := utils.ValidateSignInRequest(user); err == nil {
 			var foundUser User
 			if err := h.Db.Model(&foundUser).Where("Email = ?", user.Email).Select(); err != nil {
 				if err.Error() == "pg: no rows in result set" {
@@ -266,4 +266,40 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 	return
+}
+
+// ResetPassword function to help users reset/update their password
+func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	var user User
+	decodedClaims := context.Get(r, "decoded")
+	userId := decodedClaims.(jwt.MapClaims)["userId"].(float64)
+	err := json.NewDecoder(r.Body).Decode(&user)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Invalid Request Payload")
+		return
+	}
+	foundUser := &User{Id: int64(userId)}
+
+	if user.Password != "" {
+		if err := h.Db.Select(foundUser); err == nil {
+			foundUser.Password = user.Password
+			if err := h.Db.Update(foundUser); err != nil {
+				utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+				return
+			}
+			utils.RespondWithSuccess(w, http.StatusOK, "Password updated successfully", "message")
+		} else {
+			utils.RespondWithError(w, http.StatusNotFound, "User not found")
+			return
+		}
+
+	} else {
+		utils.RespondWithError(w, http.StatusBadRequest, "Password is required")
+	}
+
+	return
+
 }

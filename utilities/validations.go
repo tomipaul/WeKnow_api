@@ -12,7 +12,7 @@ const EXP_EMAIL = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{
 var re = regexp.MustCompile(EXP_EMAIL)
 
 // ValidateSignUpRequest validate inputs submitted for sign-up
-func ValidateSignUpRequest(user User) error {
+func ValidateSignUpRequest(user *User) error {
 
 	user.Username = strings.TrimSpace(user.Username)
 	user.PhoneNumber = strings.TrimSpace(user.PhoneNumber)
@@ -33,7 +33,7 @@ func ValidateSignUpRequest(user User) error {
 }
 
 // ValidateSignInRequest validate inputs submitted for sign-in
-func ValidateSignInRequest(user User) error {
+func ValidateSignInRequest(user *User) error {
 
 	user.Password = strings.TrimSpace(user.Password)
 
@@ -48,7 +48,7 @@ func ValidateSignInRequest(user User) error {
 }
 
 // ValidateNewCollection validate inputs submitted to create new collection
-func ValidateNewCollection(coll Collection) error {
+func ValidateNewCollection(coll *Collection) error {
 
 	coll.Name = strings.TrimSpace(coll.Name)
 	var err error

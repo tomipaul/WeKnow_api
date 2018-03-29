@@ -56,7 +56,7 @@ func (app App) declareRoutes() {
 	r.HandleFunc("/", hr.HomeHandler).Methods("GET")
 
 	// Handle authentication requests
-	authSubRouter := r.PathPrefix("/api/v1/user").Subrouter()
+	authSubRouter := r.PathPrefix("/api/v1/auth").Subrouter()
 	authSubRouter.
 		HandleFunc("/signup", hr.UserSignUpEndPoint).
 		Methods("POST")
@@ -85,8 +85,10 @@ func (app App) declareRoutes() {
 		HandleFunc("", hr.CreateCollectionEndPoint).
 		Methods("POST")
 
-	profileSubRouter := pr.PathPrefix("/api/v1/user").Subrouter()
-	profileSubRouter.
+	userSubRouter := pr.PathPrefix("/api/v1/user").Subrouter()
+	userSubRouter.
 		HandleFunc("/profile", hr.UpdateProfile).Methods("PUT")
+	userSubRouter.
+		HandleFunc("/password/reset", hr.ResetPassword).Methods("PUT")
 
 }

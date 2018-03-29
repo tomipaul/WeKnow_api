@@ -1,7 +1,6 @@
 package main_test
 
 import (
-	main "WeKnow_api"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -11,10 +10,8 @@ import (
 
 	. "WeKnow_api/model"
 
-	. "WeKnow_api/handler"
+	main "WeKnow_api"
 )
-
-var h *Handler
 
 var app main.App
 
@@ -119,5 +116,54 @@ func TestUserProfile(t *testing.T) {
 	if err := app.Db.Delete(&user); err != nil {
 		t.Log(err.Error())
 	}
+}
 
+func TestUserPassword(t *testing.T) {
+
+	testServer := httptest.NewServer(app.Router)
+	defer testServer.Close()
+
+	user := User{
+		Username:    "test",
+		Email:       "test@gmail.com",
+		PhoneNumber: "08123425634",
+		Password:    "test",
+	}
+
+	err := app.Db.Insert(&user)
+
+	if err != nil {
+		t.Log(err.Error())
+	}
+
+	token, _ := user.GenerateToken()
+	userToken := "Bearer " + token
+
+	t.Run("cannot be reset without valid password input", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Put("/api/v1/user/password/reset").
+			Set("Authorization", userToken).
+			Send(`{"password": ""}`).
+			Expect(400).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error":"Password is required"}`).
+			End()
+
+	})
+
+	t.Run("can be reset", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Put("/api/v1/user/password/reset").
+			Set("Authorization", userToken).
+			Send(`{"password": "new password"}`).
+			Expect(200).
+			Expect("Content-Type", "application/json").
+			Expect(`{"message":"Password updated successfully"}`).
+			End()
+
+	})
+
+	if err := app.Db.Delete(&user); err != nil {
+		t.Log(err.Error())
+	}
 }
