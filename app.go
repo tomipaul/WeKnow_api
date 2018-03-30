@@ -91,4 +91,11 @@ func (app App) declareRoutes() {
 	userSubRouter.
 		HandleFunc("/password/reset", hr.ResetPassword).Methods("PUT")
 
+	// Handle resource requests
+	resourceSubRouter := pr.PathPrefix("/api/v1/resource").Subrouter()
+	resourceSubRouter.Use(mwr.CreateAndSelectAddedTags)
+	resourceSubRouter.
+		HandleFunc("", hr.PostResource).
+		Methods("POST")
+
 }

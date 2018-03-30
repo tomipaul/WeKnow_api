@@ -144,16 +144,16 @@ func (c Comment) String() string {
 
 type Resource struct {
 	Id              int64
-	UserId          int64
-	CollectionId    int64
-	Title           string
-	Link            string
-	Privacy         string
-	Type            string
-	Views           int64
-	Recommendations int64
-	Comments        []*Comment
-	Tags            []Tag `pg:",many2many:collection_tags"`
+	UserId          int64      `sql:",notnull" json:",omitempty"`
+	CollectionId    int64      `json:",omitempty"`
+	Title           string     `sql:",notnull" json:",omitempty"`
+	Link            string     `sql:",unique,notnull" json:",omitempty"`
+	Privacy         string     `sql:",notnull" json:",omitempty"`
+	Type            string     `sql:",notnull" json:",omitempty"`
+	Views           int64      `json:",omitempty"`
+	Recommendations int64      `json:",omitempty"`
+	Comments        []*Comment `json:",omitempty"`
+	Tags            []Tag      `pg:",many2many:resource_tags" json:",omitempty"`
 	BaseModel
 }
 

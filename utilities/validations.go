@@ -82,3 +82,44 @@ func ValidateProfileFields(user map[string]interface{}) error {
 	}
 	return err
 }
+
+// ValidateNewResource validate the fields of a new resource
+func ValidateNewResource(resource *Resource) error {
+	resource.Title = strings.TrimSpace(resource.Title)
+	resource.Type = strings.TrimSpace(resource.Type)
+	resource.Link = strings.TrimSpace(resource.Link)
+	resource.Privacy = strings.TrimSpace(resource.Privacy)
+
+	var message string
+	var err error
+	switch {
+	case resource.Title == "":
+		message = "resource Title is required"
+	case resource.Type == "":
+		message = "resource Type is required"
+	case resource.Type != "audio" &&
+		resource.Type != "video" &&
+		resource.Type != "textual":
+		message = "resource Type must be one of 'video', 'audio' or 'textual'"
+	case resource.Link == "":
+		message = "resource Link is required"
+	case resource.Privacy == "":
+		message = "resource Privacy is required"
+	}
+	if message != "" {
+		err = errors.New(message)
+	}
+	return err
+}
+
+// ValidateNewTags validate the fields of a new tag
+func ValidateNewTags(tags []string) error {
+	var err error
+	for _, title := range tags {
+		title = strings.TrimSpace(title)
+		if title == "" {
+			err = errors.New("Tag titles must be non-empty strings")
+		}
+	}
+	return err
+}
