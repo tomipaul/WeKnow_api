@@ -1,4 +1,4 @@
-package middlewares
+package middleware
 
 import (
 	utils "WeKnow_api/utilities"
@@ -11,7 +11,8 @@ import (
 	"github.com/gorilla/context"
 )
 
-func ValidateEndpoint(next http.Handler) http.Handler {
+// AuthorizeRequest parse, verify and decode token
+func (mw *Middleware) AuthorizeRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorizationHeader := r.Header.Get("authorization")
 		if authorizationHeader != "" {

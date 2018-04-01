@@ -1,7 +1,7 @@
 package utilities
 
 import (
-	. "WeKnow_api/pgModel"
+	. "WeKnow_api/model"
 	"errors"
 	"regexp"
 	"strings"
@@ -9,6 +9,7 @@ import (
 
 const EXP_EMAIL = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 
+// ValidateSignUpRequest validate inputs submitted for sign-up
 func ValidateSignUpRequest(user User) error {
 
 	re := regexp.MustCompile(EXP_EMAIL)
@@ -30,6 +31,7 @@ func ValidateSignUpRequest(user User) error {
 	return err
 }
 
+// ValidateSignInRequest validate inputs submitted for sign-in
 func ValidateSignInRequest(user User) error {
 
 	re := regexp.MustCompile(EXP_EMAIL)
@@ -45,6 +47,7 @@ func ValidateSignInRequest(user User) error {
 	return err
 }
 
+// ValidateNewCollection validate inputs submitted to create new collection
 func ValidateNewCollection(coll Collection) error {
 
 	coll.Name = strings.TrimSpace(coll.Name)

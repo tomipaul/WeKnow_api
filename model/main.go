@@ -1,24 +1,21 @@
-package pgModel
+package model
 
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
-	"github.com/subosito/gotenv"
 )
 
-// Connect Load env variables and connect to database
-func Connect() *pg.DB {
-	gotenv.Load()
-
-	db := pg.Connect(&pg.Options{
-		User:     os.Getenv("DB_USERNAME"),
-		Password: os.Getenv("DB_PASSWORD"),
-		Database: os.Getenv("DATABASE"),
-	})
+// Connect connect to database and set up tables
+func Connect(config map[string]string) *pg.DB {
+	var dbConfig = &pg.Options{
+		User:     config["User"],
+		Password: config["Password"],
+		Database: config["Database"],
+	}
+	db := pg.Connect(dbConfig)
 
 	err := createSchema(db)
 	if err != nil {
@@ -49,7 +46,7 @@ func createSchema(db *pg.DB) error {
 			return err
 		}
 	}
-	content, err := ioutil.ReadFile("pgModel/sql.txt")
+	content, err := ioutil.ReadFile("model/sql.txt")
 	if err != nil {
 		return err
 	}

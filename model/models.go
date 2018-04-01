@@ -1,4 +1,4 @@
-package pgModel
+package model
 
 import (
 	"fmt"

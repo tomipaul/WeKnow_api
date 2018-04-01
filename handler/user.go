@@ -1,7 +1,7 @@
-package controller
+package handler
 
 import (
-	. "WeKnow_api/pgModel"
+	. "WeKnow_api/model"
 	utils "WeKnow_api/utilities"
 	"fmt"
 	"strings"
@@ -16,16 +16,15 @@ import (
 	"github.com/gorilla/context"
 )
 
-var db = Connect()
-
-func UserSignUpEndPoint(w http.ResponseWriter, r *http.Request) {
+// UserSignUpEndPoint user sign up
+func (h *Handler) UserSignUpEndPoint(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	user := &User{}
 	if err := json.NewDecoder(r.Body).Decode(user); err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 	} else {
 		if err := utils.ValidateSignUpRequest(*user); err == nil {
-			if err := db.Insert(user); err != nil {
+			if err := h.Db.Insert(user); err != nil {
 				if err.(pg.Error).Field('C') == "23505" {
 					utils.RespondWithError(w, http.StatusConflict, "User already exists")
 				}
@@ -46,7 +45,7 @@ func UserSignUpEndPoint(w http.ResponseWriter, r *http.Request) {
 }
 
 // UserSignInEndPoint user login
-func UserSignInEndPoint(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UserSignInEndPoint(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	user := &User{}
@@ -55,7 +54,7 @@ func UserSignInEndPoint(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if err := utils.ValidateSignInRequest(*user); err == nil {
 			var foundUser User
-			if err := db.Model(&foundUser).Where("Email = ?", user.Email).Select(); err != nil {
+			if err := h.Db.Model(&foundUser).Where("Email = ?", user.Email).Select(); err != nil {
 				if err.Error() == "pg: no rows in result set" {
 					utils.RespondWithError(w, http.StatusUnauthorized, "Invalid signin parameters")
 					return
@@ -82,20 +81,23 @@ func UserSignInEndPoint(w http.ResponseWriter, r *http.Request) {
 }
 
 // ConnectUser create a connection between two users
-func ConnectUser(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ConnectUser(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var payload struct{ UserId int64 }
 	err := json.NewDecoder(r.Body).Decode(&payload)
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, "A valid userId is required")
+		utils.RespondWithError(w, http.StatusBadRequest,
+			"A valid userId is required",
+		)
 	} else {
 		decodedClaims := context.Get(r, "decoded")
 		UserId := decodedClaims.(jwt.MapClaims)["userId"].(float64)
 		initiatorId, recipientId := int64(UserId), payload.UserId
 		if initiatorId == recipientId {
 			utils.RespondWithError(
-				w, http.StatusBadRequest, "You cannot connect to yourself",
+				w, http.StatusBadRequest,
+				"You cannot connect to yourself",
 			)
 			return
 		}
@@ -123,7 +125,7 @@ func ConnectUser(w http.ResponseWriter, r *http.Request) {
 		}
 		q = strings.TrimSuffix(q, ",")
 
-		stmt, err := db.Prepare(q)
+		stmt, err := h.Db.Prepare(q)
 		if err != nil {
 			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		} else if _, err := stmt.Exec(values...); err != nil {
@@ -154,12 +156,12 @@ func ConnectUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetAllFavorites get all the favorites of a user
-func GetAllFavorites(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetAllFavorites(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	decodedClaims := context.Get(r, "decoded")
 	userId := decodedClaims.(jwt.MapClaims)["userId"].(float64)
 	var connection []Connection
-	err := db.Model(&connection).
+	err := h.Db.Model(&connection).
 		Column(
 			"connection.id",
 			"initiator_id",
@@ -185,12 +187,12 @@ func GetAllFavorites(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetAllFollowers get all the followers of a user
-func GetAllFollowers(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetAllFollowers(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	decodedClaims := context.Get(r, "decoded")
 	userId := decodedClaims.(jwt.MapClaims)["userId"].(float64)
 	var connection []Connection
-	err := db.Model(&connection).
+	err := h.Db.Model(&connection).
 		Column(
 			"connection.id",
 			"initiator_id",
