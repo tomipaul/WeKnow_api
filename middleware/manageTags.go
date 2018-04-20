@@ -67,3 +67,52 @@ func (mw *Middleware) CreateAndSelectAddedTags(next http.Handler) http.Handler {
 		}
 	})
 }
+
+// SelectRemovedTags select removed tags for resources or collections
+func (mw *Middleware) SelectRemovedTags(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var tagTitles struct {
+			RemovedTags []string
+		}
+		bodyBytes, _ := ioutil.ReadAll(r.Body)
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+		if err := json.Unmarshal(bodyBytes, &tagTitles); err != nil {
+			utils.RespondWithError(
+				w,
+				http.StatusBadRequest,
+				"RemovedTags should be an array of tag titles",
+			)
+			return
+		}
+		if tagTitles.RemovedTags == nil || len(tagTitles.RemovedTags) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if err := utils.ValidateNewTags(tagTitles.RemovedTags); err != nil {
+			utils.RespondWithJsonError(
+				w, http.StatusBadRequest,
+				err.Error(),
+			)
+			return
+		}
+		var RemovedTags []interface{}
+		for tagIndex, tagTitle := range tagTitles.RemovedTags {
+			title := strings.TrimSpace(strings.Title(tagTitle))
+			tagTitles.RemovedTags[tagIndex] = title
+			RemovedTags = append(RemovedTags, &Tag{Title: title})
+		}
+		err := mw.Db.Model(RemovedTags...).
+			Where("title in (?)", pg.In(tagTitles.RemovedTags)).
+			Select()
+		if err != nil {
+			utils.RespondWithError(
+				w,
+				http.StatusInternalServerError,
+				"Oops! we couldn't select removed tags",
+			)
+		} else {
+			context.Set(r, "removed_tags", RemovedTags)
+			next.ServeHTTP(w, r)
+		}
+	})
+}

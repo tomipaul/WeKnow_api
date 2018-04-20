@@ -3,6 +3,7 @@ package utilities
 import (
 	. "WeKnow_api/model"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -108,6 +109,76 @@ func ValidateNewResource(resource *Resource) error {
 	}
 	if message != "" {
 		err = errors.New(message)
+	}
+	return err
+}
+
+// ValidateFields validate the fields of a payload
+func ValidateFields(payload map[string]interface{}) error {
+	var err error
+	for key, value := range payload {
+		switch v := value.(type) {
+		case float64:
+			if v == 0 {
+				err = fmt.Errorf("%q cannot be empty", key)
+			}
+		case string:
+			if v == "" {
+				err = fmt.Errorf("%q cannot be empty", key)
+			}
+		case map[string]interface{}:
+			if len(v) == 0 {
+				err = fmt.Errorf("%q cannot be empty", key)
+			}
+		case []interface{}:
+			if len(v) == 0 {
+				err = fmt.Errorf("%q cannot be empty", key)
+			}
+		case []string:
+			if len(v) == 0 {
+				err = fmt.Errorf("%q cannot be empty", key)
+			}
+		default:
+			err = fmt.Errorf("invalid field types in request payload")
+		}
+	}
+	return err
+}
+
+// ValidateUpdateResourcePayload validate update resource payload
+func ValidateUpdateResourcePayload(payload map[string]interface{}) error {
+	var err error
+	for key, value := range payload {
+		switch key {
+		case "title":
+			if title, ok := value.(string); !ok || title == "" {
+				err = errors.New("A valid title is required")
+			}
+		case "link":
+			if link, ok := value.(string); !ok || link == "" {
+				err = errors.New("A valid link is required")
+			}
+		case "type":
+			if rType, ok := value.(string); !ok || rType == "" {
+				err = errors.New("A valid type is required")
+			} else if rType != "audio" && rType != "video" && rType != "textual" {
+				err = errors.New(
+					"resource Type must be one of 'video', 'audio' or 'textual'",
+				)
+			}
+		case "privacy":
+			if privacy, ok := value.(string); !ok || privacy == "" {
+				err = errors.New("A valid privacy is required")
+			}
+		case "collectionId":
+			if collectionId, ok := value.(int64); !ok || collectionId == 0 {
+				err = errors.New("A valid collection Id is required")
+			}
+		default:
+			if key != "tags" && key != "removedTags" {
+				err = errors.New("Invalid keys in request payload")
+			}
+		}
 	}
 	return err
 }

@@ -93,9 +93,15 @@ func (app App) declareRoutes() {
 
 	// Handle resource requests
 	resourceSubRouter := pr.PathPrefix("/api/v1/resource").Subrouter()
+	// Middleware For added tags; select if exists else create and select
 	resourceSubRouter.Use(mwr.CreateAndSelectAddedTags)
 	resourceSubRouter.
 		HandleFunc("", hr.PostResource).
 		Methods("POST")
+	// Middleware select removed tags
+	resourceSubRouter.Use(mwr.SelectRemovedTags)
+	resourceSubRouter.
+		HandleFunc("/{resourceId:[0-9]+}", hr.UpdateResource).
+		Methods("PUT")
 
 }
