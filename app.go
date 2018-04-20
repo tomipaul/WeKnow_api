@@ -46,8 +46,11 @@ func (app App) declareRoutes() {
 	pr := r.NewRoute().Subrouter()
 
 	// Routes consist of a path and a handler function.
-	// Log all requests to the application
+	// Middleware Log all requests to the application
 	r.Use(mwr.LogRequest)
+
+	// Middleware Check if request body is empty for POST and PUT requests
+	r.Use(mwr.CheckRequestBody)
 
 	// Handle GET request to the main endpoint
 	r.HandleFunc("/", hr.HomeHandler).Methods("GET")
@@ -61,7 +64,7 @@ func (app App) declareRoutes() {
 		HandleFunc("/signin", hr.UserSignInEndPoint).
 		Methods("POST")
 
-	// Protect data endpoints
+	// Middleware Protect data endpoints
 	pr.Use(mwr.AuthorizeRequest)
 
 	// Handle connection requests
