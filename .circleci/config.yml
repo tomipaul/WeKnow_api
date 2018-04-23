@@ -1,0 +1,73 @@
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version
+      - image: circleci/golang:1.10
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      - image: circleci/postgres:9.6
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: weknow_api_test
+
+    working_directory: /go/src/WeKnow_api
+    
+    steps:
+      - checkout
+
+      - run:
+          name: Update PATH and Define Environment Variable at Runtime
+          command: |
+            echo 'export PATH=/go/bin:$PATH' >> $BASH_ENV
+            source $BASH_ENV
+
+      - restore_cache:
+          keys:
+            - v1-pkg-cache
+
+      - run: go get -v -t -d ./...
+
+      - run:
+          name: Waiting for Postgres to be ready
+          command: |
+            for i in `seq 1 10`;
+            do
+              nc -z localhost 5432 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for Postgres && exit 1
+
+      - run:
+          name: Run tests
+          environment:
+            TEST_DB_USERNAME: postgres
+            TEST_DATABASE: weknow_api_test
+          command: go test -v ./...
+
+      - run:
+          name: Compile and install service and dependencies
+          command: go install -i
+
+      - save_cache:
+          key: v1-pkg-cache
+          paths:
+            - "/go/pkg"
+
+      - run:
+          name: Start service
+          environment:
+            DB_USERNAME: postgres
+            DATABASE: weknow_api_test
+          command: WeKnow_api
+          background: true
+
+      - run:
+          name: Validate service is working
+          command: |
+            sleep 5
+            curl --retry 10 --retry-delay 1 --header "Content-Type: application/json" http://localhost:3000
+          
