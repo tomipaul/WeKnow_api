@@ -247,7 +247,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 			updatedFields = append(updatedFields, "email")
 		}
 	}
-	res, err := h.Db.Model(foundUser).Column(updatedFields...).Update()
+	res, err := h.Db.Model(foundUser).WherePK().Column(updatedFields...).Update()
 
 	if err == nil {
 		if res.RowsAffected() == 0 {
