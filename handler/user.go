@@ -86,7 +86,7 @@ func (h *Handler) ConnectUser(w http.ResponseWriter, r *http.Request) {
 	var payload struct{ UserId int64 }
 	err := json.NewDecoder(r.Body).Decode(&payload)
 
-	if err != nil {
+	if err != nil || payload.UserId == 0 {
 		utils.RespondWithError(w, http.StatusBadRequest,
 			"A valid userId is required",
 		)
