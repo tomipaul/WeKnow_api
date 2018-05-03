@@ -192,3 +192,44 @@ func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJson(w, http.StatusOK, responsePayload)
 	return
 }
+
+// DeleteResource delete an existing resource
+func (h *Handler) DeleteResource(w http.ResponseWriter, r *http.Request) {
+	resourceId, _ := strconv.ParseInt(mux.Vars(r)["resourceId"], 10, 64)
+	if resourceId == 0 {
+		utils.RespondWithError(
+			w,
+			http.StatusBadRequest,
+			"Invalid resource Id in request",
+		)
+		return
+	}
+	userId := context.Get(r, "decoded").(jwt.MapClaims)["userId"].(float64)
+	resource := Resource{Id: resourceId, UserId: int64(userId)}
+	res, err := h.Db.
+		Model(&resource).
+		Where("id = ?id AND user_id = ?user_id").
+		Delete()
+	if res.RowsAffected() == 0 {
+		utils.RespondWithError(
+			w,
+			http.StatusForbidden,
+			"Either this resource does not exist or you cannot access it",
+		)
+		return
+	}
+	if err != nil {
+		utils.RespondWithError(
+			w,
+			http.StatusInternalServerError,
+			"Something went wrong",
+		)
+	} else {
+		payload := map[string]interface{}{
+			"message":         "Resource deleted successfully",
+			"deletedResource": resourceId,
+		}
+		utils.RespondWithJson(w, http.StatusOK, payload)
+	}
+	return
+}

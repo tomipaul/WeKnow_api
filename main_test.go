@@ -54,6 +54,39 @@ func addAnotherTestUser(t *testing.T) (User, string) {
 	return user, userToken
 }
 
+func addTestResource(t *testing.T, user User) Resource {
+	resource := Resource{
+		Title:   "A new resource",
+		Type:    "textual",
+		Link:    "https://localhost.textual/material/6.pdf",
+		Privacy: "public",
+		UserId:  user.Id,
+	}
+	Tags := []string{"Python", "Fortran", "Lisp"}
+
+	var tags []interface{}
+	for _, title := range Tags {
+		tags = append(tags, &Tag{Title: title})
+	}
+	if err := app.Db.Insert(&resource); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := app.Db.Insert(tags...); err != nil {
+		t.Fatal(err.Error())
+	}
+	var resourceTags []interface{}
+	for _, tag := range tags {
+		resourceTags = append(resourceTags, &ResourceTag{
+			TagId:      tag.(*Tag).Id,
+			ResourceId: resource.Id,
+		})
+	}
+	if err := app.Db.Insert(resourceTags...); err != nil {
+		t.Fatal(err.Error())
+	}
+	return resource
+}
+
 func setUpApplication() {
 	gotenv.Load()
 	dbConfig := map[string]string{
@@ -394,36 +427,8 @@ func TestUpdateResource(t *testing.T) {
 	defer testServer.Close()
 
 	user, userToken := addTestUser(t)
+	resource := addTestResource(t, user)
 
-	resource := Resource{
-		Title:   "A new resource",
-		Type:    "textual",
-		Link:    "https://localhost.textual/material/6.pdf",
-		Privacy: "public",
-		UserId:  user.Id,
-	}
-	Tags := []string{"Python", "Fortran", "Lisp"}
-
-	var tags []interface{}
-	for _, title := range Tags {
-		tags = append(tags, &Tag{Title: title})
-	}
-	if err := app.Db.Insert(&resource); err != nil {
-		t.Log(err.Error())
-	}
-	if err := app.Db.Insert(tags...); err != nil {
-		t.Log(err.Error())
-	}
-	var resourceTags []interface{}
-	for _, tag := range tags {
-		resourceTags = append(resourceTags, &ResourceTag{
-			TagId:      tag.(*Tag).Id,
-			ResourceId: resource.Id,
-		})
-	}
-	if err := app.Db.Insert(resourceTags...); err != nil {
-		t.Log(err.Error())
-	}
 	resourceURI := fmt.Sprintf("/api/v1/resource/%v", resource.Id)
 
 	t.Run("cannot update resource with invalid JSON payload", func(t *testing.T) {
@@ -761,4 +766,61 @@ func TestUpdateResource(t *testing.T) {
 	})
 
 	dropAllDatabaseTables(t)
+}
+
+func TestDeleteResource(t *testing.T) {
+	setUpApplication()
+	testServer := httptest.NewServer(app.Router)
+	defer testServer.Close()
+
+	user, userToken := addTestUser(t)
+	resource := addTestResource(t, user)
+
+	resourceURI := fmt.Sprintf("/api/v1/resource/%v", resource.Id)
+
+	t.Run("cannot delete nonexistent resource", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Delete("/api/v1/resource/238").
+			Set("authorization", userToken).
+			Expect(403).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error":"Either this resource does not exist or you cannot access it"}`).
+			End()
+	})
+
+	t.Run("cannot delete resource with id 0", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Delete("/api/v1/resource/0").
+			Set("authorization", userToken).
+			Expect(400).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error":"Invalid resource Id in request"}`).
+			End()
+	})
+
+	t.Run("can only delete own resource", func(t *testing.T) {
+		_, userToken := addAnotherTestUser(t)
+
+		Request(testServer.URL, t).
+			Delete(resourceURI).
+			Set("authorization", userToken).
+			Expect(403).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error":"Either this resource does not exist or you cannot access it"}`).
+			End()
+	})
+
+	t.Run("can delete resource", func(t *testing.T) {
+		expectedResponse := map[string]interface{}{
+			"deletedResource": resource.Id,
+			"message":         "Resource deleted successfully",
+		}
+		Request(testServer.URL, t).
+			Delete(resourceURI).
+			Set("authorization", userToken).
+			Expect(200).
+			Expect("Content-Type", "application/json").
+			Expect(expectedResponse).
+			End()
+	})
 }
