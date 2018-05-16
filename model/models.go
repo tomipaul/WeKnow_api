@@ -70,6 +70,9 @@ func (u *User) BeforeInsert(db orm.DB) error {
 }
 
 func (u *User) BeforeUpdate(db orm.DB) error {
+	if err := u.BaseModel.BeforeUpdate(db); err != nil {
+		return err
+	}
 	hashed, error := u.HashPassword()
 	if error != nil {
 		return error

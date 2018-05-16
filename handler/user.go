@@ -233,7 +233,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	updatedFields := []string{}
+	updatedFields := []string{"updated_at"}
 	for key, value := range user {
 		switch key {
 		case "username":
