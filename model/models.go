@@ -134,10 +134,11 @@ func (m Message) String() string {
 
 type Comment struct {
 	Id         int64
-	UserId     int64
-	ResourceId int64
-	Text       string
-	Likes      int64
+	UserId     int64     `sql:",notnull"`
+	ResourceId int64     `sql:",notnull"`
+	Text       string    `sql:",notnull"`
+	Likes      int64     `sql:",notnull"`
+	Resource   *Resource `json:",omitempty"`
 	BaseModel
 }
 

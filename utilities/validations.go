@@ -194,3 +194,22 @@ func ValidateNewTags(tags []string) error {
 	}
 	return err
 }
+
+// ValidateNewComment validate the fields of a new comment
+func ValidateNewComment(comment *Comment) error {
+	comment.Text = strings.TrimSpace(comment.Text)
+	var err error
+	switch {
+	case comment.Text == "":
+		err = errors.New("comment Text is required, it cannot be empty")
+	case comment.UserId == 0:
+		err = errors.New(
+			"userId is required, comment must be associated with a valid user",
+		)
+	case comment.ResourceId == 0:
+		err = errors.New(
+			"resourceId is required, comment must be associated with a valid resource",
+		)
+	}
+	return err
+}

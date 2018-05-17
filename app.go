@@ -117,4 +117,10 @@ func (app App) declareRoutes() {
 	resourceTagsSubRouter.
 		HandleFunc("/{resourceId:[0-9]+}", hr.UpdateResource).
 		Methods("PUT")
+
+	// Handle comment requests
+	commentSubRouter := pr.PathPrefix("/api/v1/comment").Subrouter()
+	commentSubRouter.
+		HandleFunc("", hr.AddComment).
+		Methods("POST")
 }
