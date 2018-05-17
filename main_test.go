@@ -17,98 +17,14 @@ import (
 
 var app main.App
 
-func addTestUser(t *testing.T) (User, string) {
-	user := User{
-		Username:    "test",
-		Email:       "test@gmail.com",
-		PhoneNumber: "08123425634",
-		Password:    "test",
-	}
-
-	err := app.Db.Insert(&user)
-
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	token, _ := user.GenerateToken()
-	userToken := "Bearer " + token
-	return user, userToken
-}
-
-func addAnotherTestUser(t *testing.T) (User, string) {
-	user := User{
-		Username:    "anotherTest",
-		Email:       "anotherTest@gmail.com",
-		PhoneNumber: "08134567901",
-		Password:    "anotherTest",
-	}
-	err := app.Db.Insert(&user)
-
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	token, _ := user.GenerateToken()
-	userToken := "Bearer " + token
-	return user, userToken
-}
-
-func addTestResource(t *testing.T, user User) Resource {
-	resource := Resource{
-		Title:   "A new resource",
-		Type:    "textual",
-		Link:    "https://localhost.textual/material/6.pdf",
-		Privacy: "public",
-		UserId:  user.Id,
-	}
-	Tags := []string{"Python", "Fortran", "Lisp"}
-
-	var tags []interface{}
-	for _, title := range Tags {
-		tags = append(tags, &Tag{Title: title})
-	}
-	if err := app.Db.Insert(&resource); err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := app.Db.Insert(tags...); err != nil {
-		t.Fatal(err.Error())
-	}
-	var resourceTags []interface{}
-	for _, tag := range tags {
-		resourceTags = append(resourceTags, &ResourceTag{
-			TagId:      tag.(*Tag).Id,
-			ResourceId: resource.Id,
-		})
-	}
-	if err := app.Db.Insert(resourceTags...); err != nil {
-		t.Fatal(err.Error())
-	}
-	return resource
-}
-
-func setUpApplication() {
-	gotenv.Load()
-	dbConfig := map[string]string{
-		"User":     os.Getenv("TEST_DB_USERNAME"),
-		"Password": os.Getenv("TEST_DB_PASSWORD"),
-		"Database": os.Getenv("TEST_DATABASE"),
-	}
-	app = main.CreateApp(dbConfig)
-}
-
-func dropAllDatabaseTables(t *testing.T) {
-	query := `DROP TABLE IF EXISTS users, messages, connections,
-	comments, resources, collections, tags,
-	resource_tags, collection_tags, user_connections`
-	if _, err := app.Db.Exec(query); err != nil {
-		t.Fatal(err.Error())
-	}
-}
-
 func TestMain(m *testing.M) {
+	fmt.Println("Loading environment variables...")
+	gotenv.Load()
+
+	fmt.Println("Setting up application...")
 	setUpApplication()
 
+	fmt.Println("Running tests...")
 	code := m.Run()
 
 	query := `DROP TABLE IF EXISTS users, messages, connections,
@@ -121,11 +37,13 @@ func TestMain(m *testing.M) {
 }
 
 func TestUserProfile(t *testing.T) {
-	setUpApplication()
+	initializeDatabase(t)
 	testServer := httptest.NewServer(app.Router)
+	defer closeDatabase(t)
 	defer testServer.Close()
 
-	_, userToken := addTestUser(t)
+	testUser := dummyData["testUser"].(map[string]interface{})
+	_, userToken := addTestUser(t, testUser)
 
 	t.Run("cannot update with no username", func(t *testing.T) {
 		Request(testServer.URL, t).
@@ -192,16 +110,16 @@ func TestUserProfile(t *testing.T) {
 			Expect(`{"message":"ProfileUpdatedsuccessfully","updatedProfile":{"phoneNumber":"09023450022"}}`).
 			End()
 	})
-
-	dropAllDatabaseTables(t)
 }
 
 func TestUserPassword(t *testing.T) {
-	setUpApplication()
+	initializeDatabase(t)
 	testServer := httptest.NewServer(app.Router)
+	defer closeDatabase(t)
 	defer testServer.Close()
 
-	_, userToken := addTestUser(t)
+	testUser := dummyData["testUser"].(map[string]interface{})
+	_, userToken := addTestUser(t, testUser)
 
 	t.Run("cannot be reset without valid password input", func(t *testing.T) {
 		Request(testServer.URL, t).
@@ -226,16 +144,16 @@ func TestUserPassword(t *testing.T) {
 			End()
 
 	})
-
-	dropAllDatabaseTables(t)
 }
 
 func TestPostResource(t *testing.T) {
-	setUpApplication()
+	initializeDatabase(t)
 	testServer := httptest.NewServer(app.Router)
+	defer closeDatabase(t)
 	defer testServer.Close()
 
-	_, userToken := addTestUser(t)
+	testUser := dummyData["testUser"].(map[string]interface{})
+	_, userToken := addTestUser(t, testUser)
 
 	t.Run("cannot create resource with invalid field types", func(t *testing.T) {
 		resource := `{
@@ -417,17 +335,20 @@ func TestPostResource(t *testing.T) {
 			Expect(`{"error":"A resource exists with provided link"}`).
 			End()
 	})
-
-	dropAllDatabaseTables(t)
 }
 
 func TestUpdateResource(t *testing.T) {
-	setUpApplication()
+	initializeDatabase(t)
 	testServer := httptest.NewServer(app.Router)
+	defer closeDatabase(t)
 	defer testServer.Close()
 
-	user, userToken := addTestUser(t)
-	resource := addTestResource(t, user)
+	testUser := dummyData["testUser"].(map[string]interface{})
+	user, userToken := addTestUser(t, testUser)
+
+	testResource := dummyData["testResource"].(map[string]interface{})
+	testResource["userId"] = user.Id
+	resource := addTestResource(t, testResource)
 
 	resourceURI := fmt.Sprintf("/api/v1/resource/%v", resource.Id)
 
@@ -671,7 +592,9 @@ func TestUpdateResource(t *testing.T) {
 	})
 
 	t.Run("can only update own resource", func(t *testing.T) {
-		_, userToken := addAnotherTestUser(t)
+		anotherTestUser := dummyData["anotherTestUser"].(map[string]interface{})
+		_, userToken := addTestUser(t, anotherTestUser)
+
 		payload := `{
 			"title": "An updated resource",
 			"type": "audio"
@@ -764,17 +687,20 @@ func TestUpdateResource(t *testing.T) {
 			Expect(expectedResponse).
 			End()
 	})
-
-	dropAllDatabaseTables(t)
 }
 
 func TestDeleteResource(t *testing.T) {
-	setUpApplication()
+	initializeDatabase(t)
 	testServer := httptest.NewServer(app.Router)
+	defer closeDatabase(t)
 	defer testServer.Close()
 
-	user, userToken := addTestUser(t)
-	resource := addTestResource(t, user)
+	testUser := dummyData["testUser"].(map[string]interface{})
+	user, userToken := addTestUser(t, testUser)
+
+	testResource := dummyData["testResource"].(map[string]interface{})
+	testResource["userId"] = user.Id
+	resource := addTestResource(t, testResource)
 
 	resourceURI := fmt.Sprintf("/api/v1/resource/%v", resource.Id)
 
@@ -799,7 +725,8 @@ func TestDeleteResource(t *testing.T) {
 	})
 
 	t.Run("can only delete own resource", func(t *testing.T) {
-		_, userToken := addAnotherTestUser(t)
+		anotherTestUser := dummyData["anotherTestUser"].(map[string]interface{})
+		_, userToken := addTestUser(t, anotherTestUser)
 
 		Request(testServer.URL, t).
 			Delete(resourceURI).
