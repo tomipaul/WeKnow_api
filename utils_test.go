@@ -41,6 +41,12 @@ var dummyData = map[string]interface{}{
 		"phoneNumber": "08123425634",
 		"password":    "uzumaki",
 	},
+	"testCollection": map[string]interface{}{
+		"name": "new collection",
+	},
+	"anotherTestCollection": map[string]interface{}{
+		"name": "another collection",
+	},
 }
 
 func setUpApplication() {
@@ -148,11 +154,11 @@ func addTestComment(t *testing.T, testData map[string]interface{}) Comment {
 	return comment
 }
 
-func addTestCollection(t *testing.T, testData map[string]interface{}) {
+func addTestCollection(t *testing.T, testData map[string]interface{}, userId int64) {
 
 	testCollection := Collection{
 		Name:   testData["name"].(string),
-		UserId: int64(testData["userId"].(int)),
+		UserId: userId,
 	}
 
 	if err := app.Db.Insert(&testCollection); err != nil {
