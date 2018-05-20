@@ -27,6 +27,20 @@ var dummyData = map[string]interface{}{
 		"privacy": "public",
 		"tags":    []string{"Python", "Fortran", "Lisp"},
 	},
+	"collection1": map[string]interface{}{
+		"name":   "first collection",
+		"userId": 1,
+	},
+	"collection2": map[string]interface{}{
+		"name":   "second collection",
+		"userId": 1,
+	},
+	"naruto": map[string]interface{}{
+		"username":    "naruto",
+		"email":       "naruto@gmail.com",
+		"phoneNumber": "08123425634",
+		"password":    "uzumaki",
+	},
 }
 
 func setUpApplication() {
@@ -132,4 +146,17 @@ func addTestComment(t *testing.T, testData map[string]interface{}) Comment {
 		t.Fatal(err.Error())
 	}
 	return comment
+}
+
+func addTestCollection(t *testing.T, testData map[string]interface{}) {
+
+	testCollection := Collection{
+		Name:   testData["name"].(string),
+		UserId: int64(testData["userId"].(int)),
+	}
+
+	if err := app.Db.Insert(&testCollection); err != nil {
+		t.Fatal(err.Error())
+	}
+
 }

@@ -37,3 +37,31 @@ func (h *Handler) CreateCollectionEndPoint(w http.ResponseWriter, r *http.Reques
 
 	}
 }
+
+func (h *Handler) GetAllCollections(w http.ResponseWriter, r *http.Request) {
+
+	decodedClaims := context.Get(r, "decoded")
+	userId := decodedClaims.(jwt.MapClaims)["userId"].(float64)
+
+	var collections []Collection
+
+	err := h.Db.Model(&collections).
+		Column(
+			"collection.*",
+		).
+		Where("collection.user_id = ?", int(userId)).
+		Select()
+	if err != nil {
+		utils.RespondWithError(
+			w,
+			http.StatusInternalServerError,
+			"Something went wrong",
+		)
+	} else {
+		payload := map[string][]Collection{
+			"collections": collections,
+		}
+		utils.RespondWithJson(w, http.StatusOK, payload)
+	}
+
+}

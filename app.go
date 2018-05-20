@@ -84,6 +84,9 @@ func (app App) declareRoutes() {
 	collectionSubRouter.
 		HandleFunc("", hr.CreateCollectionEndPoint).
 		Methods("POST")
+	collectionSubRouter.
+		HandleFunc("", hr.GetAllCollections).
+		Methods("GET")
 
 	userSubRouter := pr.PathPrefix("/api/v1/user").Subrouter()
 	userSubRouter.
