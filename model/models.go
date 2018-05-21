@@ -155,6 +155,7 @@ type Resource struct {
 	Type            string     `sql:",notnull" json:",omitempty"`
 	Views           int64      `json:",omitempty"`
 	Recommendations int64      `json:",omitempty"`
+	User            *User      `json:",omitempty"`
 	Comments        []*Comment `json:",omitempty"`
 	Tags            []Tag      `pg:",many2many:resource_tags" json:",omitempty"`
 	BaseModel
@@ -199,4 +200,9 @@ type CollectionTag struct {
 type UserConnection struct {
 	UserId       int64 `sql:",pk"`
 	ConnectionId int64 `sql:",pk"`
+}
+
+type Recommendation struct {
+	ResourceId int64 `sql:",pk"`
+	UserId     int64 `sql:",pk"`
 }

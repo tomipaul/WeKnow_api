@@ -233,3 +233,62 @@ func (h *Handler) DeleteResource(w http.ResponseWriter, r *http.Request) {
 	}
 	return
 }
+
+// RecommendResource recommend a resource
+func (h *Handler) RecommendResource(w http.ResponseWriter, r *http.Request) {
+	resourceId, _ := strconv.ParseInt(mux.Vars(r)["resourceId"], 10, 64)
+	if resourceId == 0 {
+		utils.RespondWithError(
+			w,
+			http.StatusBadRequest,
+			"Invalid resource Id in request",
+		)
+		return
+	}
+
+	userId := context.Get(r, "decoded").(jwt.MapClaims)["userId"].(float64)
+	var recommendationCount int64
+
+	err := h.Db.RunInTransaction(func(tx *pg.Tx) error {
+		_, err := tx.QueryOne(
+			pg.Scan(&recommendationCount),
+			`SELECT recommendations FROM resources WHERE id = ? FOR UPDATE`,
+			resourceId,
+		)
+		if err != nil {
+			return err
+		}
+
+		recommendationCount++
+		_, err = tx.Exec(
+			`INSERT INTO recommendations (user_id, resource_id)
+			VALUES (?0, ?1);
+			UPDATE resources SET recommendations = ?2 WHERE id = ?1`,
+			int64(userId), resourceId, recommendationCount,
+		)
+		return err
+	})
+	if err != nil {
+		if err == pg.ErrNoRows {
+			utils.RespondWithError(
+				w, http.StatusNotFound, "Resource does not exist",
+			)
+		} else if pgError, OK := err.(pg.Error); OK && pgError.Field('C') == "23505" {
+			utils.RespondWithError(
+				w, http.StatusConflict,
+				"You have recommended this resource",
+			)
+		} else {
+			utils.RespondWithError(
+				w, http.StatusInternalServerError, "Something went wrong",
+			)
+		}
+	} else {
+		payload := map[string]interface{}{
+			"message":             "Recommend resource successful",
+			"recommendationCount": recommendationCount,
+		}
+		utils.RespondWithJson(w, http.StatusOK, payload)
+	}
+	return
+}

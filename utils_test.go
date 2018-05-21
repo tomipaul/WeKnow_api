@@ -15,10 +15,16 @@ var dummyData = map[string]interface{}{
 		"password":    "test",
 	},
 	"anotherTestUser": map[string]interface{}{
-		"username":    "anotherTest",
-		"email":       "anotherTest@gmail.com",
+		"username":    "anotherUser",
+		"email":       "anotherUser@gmail.com",
 		"phoneNumber": "08134567901",
-		"password":    "anotherTest",
+		"password":    "anotherUser",
+	},
+	"thirdTestUser": map[string]interface{}{
+		"username":    "thirdUser",
+		"email":       "thirdUser@gmail.com",
+		"phoneNumber": "08100002348",
+		"password":    "thirdUser",
 	},
 	"testResource": map[string]interface{}{
 		"title":   "A new resource",
@@ -60,7 +66,7 @@ func setUpApplication() {
 
 func closeDatabase(t *testing.T) {
 	query := `DROP TABLE IF EXISTS users, messages, connections,
-	comments, resources, collections, tags,
+	comments, resources, collections, tags, recommendations,
 	resource_tags, collection_tags, user_connections`
 	if _, err := app.Db.Exec(query); err != nil {
 		t.Fatal(err.Error())

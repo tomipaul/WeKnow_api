@@ -38,6 +38,7 @@ func createSchema(db *pg.DB) error {
 		&ResourceTag{},
 		&CollectionTag{},
 		&UserConnection{},
+		&Recommendation{},
 	} {
 		if err := db.CreateTable(
 			model,
