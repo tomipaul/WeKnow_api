@@ -149,7 +149,6 @@ func (c Comment) String() string {
 type Resource struct {
 	Id              int64
 	UserId          int64      `sql:",notnull" json:",omitempty"`
-	CollectionId    int64      `json:",omitempty"`
 	Title           string     `sql:",notnull" json:",omitempty"`
 	Link            string     `sql:",unique,notnull" json:",omitempty"`
 	Privacy         string     `sql:",notnull" json:",omitempty"`
@@ -206,4 +205,9 @@ type UserConnection struct {
 type Recommendation struct {
 	ResourceId int64 `sql:",pk"`
 	UserId     int64 `sql:",pk"`
+}
+
+type ResourceCollection struct {
+	ResourceId   int64 `sql:",pk"`
+	CollectionId int64 `sql:",pk"`
 }

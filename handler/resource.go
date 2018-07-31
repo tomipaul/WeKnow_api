@@ -119,9 +119,6 @@ func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
 		case "privacy":
 			resource.Privacy = value.(string)
 			updatedFields = append(updatedFields, "privacy")
-		case "collectionId":
-			resource.CollectionId = value.(int64)
-			updatedFields = append(updatedFields, "collection_id")
 		}
 	}
 	if len(updatedFields) > 0 {

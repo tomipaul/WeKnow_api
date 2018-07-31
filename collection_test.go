@@ -2,6 +2,7 @@ package main_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -24,8 +25,10 @@ func TestCollection(t *testing.T) {
 
 	testCollection1 := dummyData["collection1"].(map[string]interface{})
 	testCollection2 := dummyData["collection2"].(map[string]interface{})
-	addTestCollection(t, testCollection1, user.Id)
-	addTestCollection(t, testCollection2, user.Id)
+	testCollection1["userId"] = user.Id
+	testCollection2["userId"] = user.Id
+	addTestCollection(t, testCollection1)
+	addTestCollection(t, testCollection2)
 
 	t.Run("can get all user's collections", func(t *testing.T) {
 
@@ -104,11 +107,12 @@ func TestUpdateCollection(t *testing.T) {
 	user, userToken := addTestUser(t, testUser)
 	anotherUser, anotherUserToken := addTestUser(t, anotherTestUser)
 
-	testCollection := dummyData["testCollection"].(map[string]interface{})
-	anotherTestCollection := dummyData["anotherTestCollection"].(map[string]interface{})
-
-	addTestCollection(t, testCollection, user.Id)
-	addTestCollection(t, anotherTestCollection, anotherUser.Id)
+	testCollection := dummyData["collection1"].(map[string]interface{})
+	anotherTestCollection := dummyData["collection2"].(map[string]interface{})
+	testCollection["userId"] = user.Id
+	anotherTestCollection["userId"] = anotherUser.Id
+	addTestCollection(t, testCollection)
+	addTestCollection(t, anotherTestCollection)
 
 	t.Run("cannot be updated when it doesn't belong to the user", func(t *testing.T) {
 
@@ -262,6 +266,115 @@ func TestUpdateCollection(t *testing.T) {
 			Expect(400).
 			Expect("Content-Type", "application/json").
 			Expect(`{ "error": "Please enter valid collection name"}`).
+			End()
+	})
+}
+
+func TestResource(t *testing.T) {
+
+	initializeDatabase(t)
+	testServer := httptest.NewServer(app.Router)
+	defer closeDatabase(t)
+	defer testServer.Close()
+
+	testUser := dummyData["testUser"].(map[string]interface{})
+	user, userToken := addTestUser(t, testUser)
+
+	testResource := dummyData["testResource"].(map[string]interface{})
+	testResource["userId"] = user.Id
+	resource := addTestResource(t, testResource)
+
+	testCollection := dummyData["collection1"].(map[string]interface{})
+	testCollection["userId"] = user.Id
+	collection := addTestCollection(t, testCollection)
+
+	testCollection2 := dummyData["collection2"].(map[string]interface{})
+	testCollection2["userId"] = user.Id
+	collection2 := addTestCollection(t, testCollection2)
+
+	collectionURI := fmt.Sprintf("/api/v1/collection/add/%v", collection.Id)
+
+	collectionURI2 := fmt.Sprintf("/api/v1/collection/add/%v", collection2.Id)
+
+	invalidCollectionURI := fmt.Sprintf("/api/v1/collection/add/%v", 100)
+
+	payload := `{
+		"ResourceId": %v
+	}`
+
+	payload = fmt.Sprintf(payload, resource.Id)
+
+	invalidPayload := `{
+		"ResourceId": 0
+	}`
+
+	invalidPayload1 := `{
+		"ResourceId": 1000
+	}`
+
+	t.Run("can be added to a collection", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Post(collectionURI).
+			Set("authorization", userToken).
+			Send(payload).
+			Expect(200).
+			Expect("Content-Type", "application/json").
+			Expect(`{"message":"resource added to collection"}`).
+			End()
+	})
+
+	t.Run("cannot be added more than once", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Post(collectionURI).
+			Set("authorization", userToken).
+			Send(payload).
+			Expect(409).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error": "Resource already added to collection"}`).
+			End()
+	})
+
+	t.Run("can be added to a another or different collection", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Post(collectionURI2).
+			Set("authorization", userToken).
+			Send(payload).
+			Expect(200).
+			Expect("Content-Type", "application/json").
+			Expect(`{"message":"resource added to collection"}`).
+			End()
+	})
+
+	t.Run("cannot be added to unknown collection", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Post(invalidCollectionURI).
+			Set("authorization", userToken).
+			Send(payload).
+			Expect(404).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error": "Resource or Collection does not exist"}`).
+			End()
+	})
+
+	t.Run("cannot be added to a collection because it doesn't exist", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Post(collectionURI).
+			Set("authorization", userToken).
+			Send(invalidPayload1).
+			Expect(404).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error": "Resource or Collection does not exist"}`).
+			End()
+	})
+
+	t.Run("cannot be added because it is invalid", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Post(collectionURI).
+			Set("authorization", userToken).
+			Send(invalidPayload).
+			Expect(400).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error": "A valid ResourceId is required"}`).
 			End()
 	})
 

@@ -36,24 +36,16 @@ var dummyData = map[string]interface{}{
 		"tags":    []string{"Python", "Fortran", "Lisp"},
 	},
 	"collection1": map[string]interface{}{
-		"name":   "first collection",
-		"userId": 1,
+		"name": "first collection",
 	},
 	"collection2": map[string]interface{}{
-		"name":   "second collection",
-		"userId": 1,
+		"name": "second collection",
 	},
 	"naruto": map[string]interface{}{
 		"username":    "naruto",
 		"email":       "naruto@gmail.com",
 		"phoneNumber": "08123425634",
 		"password":    "uzumaki",
-	},
-	"testCollection": map[string]interface{}{
-		"name": "new collection",
-	},
-	"anotherTestCollection": map[string]interface{}{
-		"name": "another collection",
 	},
 }
 
@@ -158,15 +150,16 @@ func addTestComment(t *testing.T, testData map[string]interface{}) Comment {
 	return comment
 }
 
-func addTestCollection(t *testing.T, testData map[string]interface{}, userId int64) {
-
+func addTestCollection(t *testing.T, testData map[string]interface{}) Collection {
 	testCollection := Collection{
 		Name:   testData["name"].(string),
-		UserId: userId,
+		UserId: testData["userId"].(int64),
 	}
 
 	if err := app.Db.Insert(&testCollection); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	return testCollection
 
 }

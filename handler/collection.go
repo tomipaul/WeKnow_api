@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/go-pg/pg"
 	"github.com/gorilla/context"
-
 	"github.com/gorilla/mux"
 )
 
@@ -121,5 +121,56 @@ func (h *Handler) UpdateCollectionEndPoint(w http.ResponseWriter, r *http.Reques
 		)
 	}
 	return
+}
+
+// AddResourceToCollection - It allows users add a resource to a collection
+func (h *Handler) AddResourceToCollection(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	var payload struct{ ResourceId int64 }
+	err := json.NewDecoder(r.Body).Decode(&payload)
+
+	if err != nil || payload.ResourceId == 0 {
+		utils.RespondWithError(w, http.StatusBadRequest,
+			"A valid ResourceId is required",
+		)
+		return
+	}
+
+	collectionId, _ := strconv.ParseInt(mux.Vars(r)["collectionId"], 10, 64)
+	query := `INSERT INTO resource_collections(resource_id, collection_id) VALUES ($1, $2)`
+
+	values := []interface{}{
+		payload.ResourceId,
+		collectionId,
+	}
+
+	stmt, err := h.Db.Prepare(query)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+	} else if _, err := stmt.Exec(values...); err != nil {
+		if err.(pg.Error).Field('C') == "23505" {
+			utils.RespondWithError(
+				w, http.StatusConflict,
+				"Resource already added to collection",
+			)
+		} else if err.(pg.Error).Field('C') == "23503" {
+			utils.RespondWithError(
+				w, http.StatusNotFound,
+				"Resource or Collection does not exist",
+			)
+		} else {
+			utils.RespondWithError(
+				w, http.StatusInternalServerError,
+				"Something went wrong!",
+			)
+		}
+		return
+	} else {
+		message := "resource added to collection"
+		key := "message"
+		utils.RespondWithSuccess(w, http.StatusOK, message, key)
+	}
 
 }

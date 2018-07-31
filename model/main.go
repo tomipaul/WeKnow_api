@@ -41,6 +41,7 @@ func CreateSchema(db *pg.DB) error {
 		&CollectionTag{},
 		&UserConnection{},
 		&Recommendation{},
+		&ResourceCollection{},
 	} {
 		if err := db.CreateTable(
 			model,
@@ -73,6 +74,7 @@ func DropSchema(db *pg.DB) error {
 		&CollectionTag{},
 		&UserConnection{},
 		&Recommendation{},
+		&ResourceCollection{},
 	} {
 		if err := db.DropTable(
 			model,

@@ -22,8 +22,8 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	query := `DROP TABLE IF EXISTS users, messages, connections,
-	comments, resources, collections, tags,
-	resource_tags, collection_tags, user_connections CASCADE`
+	comments, resources, collections, tags, resource_tags, 
+	collection_tags, user_connections, resource_collections CASCADE`
 	if _, err := app.Db.Exec(query); err != nil {
 		fmt.Println(err.Error())
 	}

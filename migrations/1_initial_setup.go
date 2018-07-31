@@ -22,6 +22,7 @@ func createSchema(db migrations.DB) error {
 		&CollectionTag{},
 		&UserConnection{},
 		&Recommendation{},
+		&ResourceCollection{},
 	} {
 		if _, err := orm.CreateTable(
 			db,
@@ -54,6 +55,7 @@ func dropSchema(db migrations.DB) error {
 		&CollectionTag{},
 		&UserConnection{},
 		&Recommendation{},
+		&ResourceCollection{},
 	} {
 		if _, err := orm.DropTable(
 			db,

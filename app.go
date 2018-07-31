@@ -90,6 +90,9 @@ func (app App) declareRoutes() {
 	collectionSubRouter.
 		HandleFunc("/{collectionID}", hr.UpdateCollectionEndPoint).
 		Methods("PUT")
+	collectionSubRouter.
+		HandleFunc("/add/{collectionId:[0-9]+}", hr.AddResourceToCollection).
+		Methods("POST")
 
 	userSubRouter := pr.PathPrefix("/api/v1/user").Subrouter()
 	userSubRouter.
