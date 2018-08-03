@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	. "github.com/haoxins/supertest"
+	. "WeKnow_api/libs/supertest"
 )
 
 func TestRecommendResource(t *testing.T) {

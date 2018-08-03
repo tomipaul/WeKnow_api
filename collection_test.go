@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/haoxins/supertest"
+	. "WeKnow_api/libs/supertest"
 )
 
 var valueMap interface{}
