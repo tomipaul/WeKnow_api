@@ -292,3 +292,50 @@ func (h *Handler) RecommendResource(w http.ResponseWriter, r *http.Request) {
 	}
 	return
 }
+
+// GetResource get a resource
+func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
+	resourceId, _ := strconv.ParseInt(mux.Vars(r)["resourceId"], 10, 64)
+	if resourceId == 0 {
+		utils.RespondWithError(
+			w,
+			http.StatusBadRequest,
+			"Invalid resource Id in request",
+		)
+		return
+	}
+	resource := Resource{Id: resourceId}
+
+	err := h.Db.
+		Model(&resource).
+		Column(
+			"resource.*",
+			"User.username",
+			"User.email",
+			"Tags",
+		).
+		Where("resource.id = ?id").
+		Select()
+
+	if err != nil {
+		if err == pg.ErrNoRows {
+			utils.RespondWithError(
+				w,
+				http.StatusNotFound,
+				"Resource does not exist",
+			)
+			return
+		}
+		utils.RespondWithError(
+			w,
+			http.StatusInternalServerError,
+			"Something went wrong",
+		)
+	} else {
+		payload := map[string]interface{}{
+			"resource": resource,
+		}
+		utils.RespondWithJson(w, http.StatusOK, payload)
+	}
+	return
+}

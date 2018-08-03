@@ -100,6 +100,9 @@ func (app App) declareRoutes() {
 	// Handle resource requests
 	resourceSubRouter := pr.PathPrefix("/api/v1/resource").Subrouter()
 	resourceSubRouter.
+		HandleFunc("/{resourceId:[0-9]+}", hr.GetResource).
+		Methods("GET")
+	resourceSubRouter.
 		HandleFunc("/{resourceId:[0-9]+}", hr.DeleteResource).
 		Methods("DELETE")
 	resourceSubRouter.

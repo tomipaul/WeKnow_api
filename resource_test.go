@@ -160,3 +160,72 @@ func TestRecommendResource(t *testing.T) {
 			End()
 	})
 }
+
+func TestGetResource(t *testing.T) {
+	initializeDatabase(t)
+	testServer := httptest.NewServer(app.Router)
+	defer closeDatabase(t)
+	defer testServer.Close()
+
+	testUser := dummyData["testUser"].(map[string]interface{})
+	user, userToken := addTestUser(t, testUser)
+
+	testResource := dummyData["testResource"].(map[string]interface{})
+	testResource["userId"] = user.Id
+	resource := addTestResource(t, testResource)
+
+	resourceURI := "/api/v1/resource/"
+
+	t.Run("cannot get resource with id 0", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Get(resourceURI+"0").
+			Set("authorization", userToken).
+			Expect(400).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error":"Invalid resource Id in request"}`).
+			End()
+	})
+
+	t.Run("cannot get nonexistent resource", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Get(resourceURI+"238").
+			Set("authorization", userToken).
+			Expect(404).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error":"Resource does not exist"}`).
+			End()
+	})
+
+	t.Run("can get a resource", func(t *testing.T) {
+		type ExpectedResource struct {
+			Id      int64
+			UserId  int64
+			Title   string
+			Link    string
+			Privacy string
+			Type    string
+		}
+		type ExpectedResponse struct {
+			Resource ExpectedResource
+		}
+
+		expectedResponse := ExpectedResponse{
+			ExpectedResource{
+				resource.Id,
+				resource.UserId,
+				resource.Title,
+				resource.Link,
+				resource.Privacy,
+				resource.Type,
+			},
+		}
+
+		Request(testServer.URL, t).
+			Get(fmt.Sprintf("%v%v", resourceURI, resource.Id)).
+			Set("authorization", userToken).
+			Expect(200).
+			Expect("Content-Type", "application/json").
+			Expect(expectedResponse).
+			End()
+	})
+}
