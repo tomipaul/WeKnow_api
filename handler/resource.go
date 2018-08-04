@@ -95,6 +95,14 @@ func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
 	}
 	userId := context.Get(r, "decoded").(jwt.MapClaims)["userId"].(float64)
 	resourceId, _ := strconv.ParseInt(mux.Vars(r)["resourceId"], 10, 64)
+	if err := utils.ValidateResourceId(resourceId); err != nil {
+		utils.RespondWithError(
+			w,
+			http.StatusBadRequest,
+			err.Error(),
+		)
+		return
+	}
 	resource := &Resource{Id: resourceId, UserId: int64(userId)}
 	updatedFields := []string{}
 	for key, value := range payload {
@@ -117,32 +125,29 @@ func (h *Handler) UpdateResource(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(updatedFields) > 0 {
-		res, err := h.Db.
+		_, err := h.Db.
 			Model(resource).
 			Column(updatedFields...).
 			Where("id = ?id AND user_id = ?user_id").
 			Returning("*").
 			Update(resource)
+
 		if err != nil {
-			if err.(pg.Error).Field('C') == "23505" {
+			if err == pg.ErrNoRows {
+				utils.RespondWithError(
+					w, http.StatusNotFound,
+					"Either this resource does not exist or you cannot access it",
+				)
+			} else if pgError, OK := err.(pg.Error); OK && pgError.Field('C') == "23505" {
 				utils.RespondWithError(
 					w, http.StatusConflict,
 					"A resource exists with provided link",
 				)
 			} else {
 				utils.RespondWithError(
-					w, http.StatusInternalServerError,
-					"Something went wong",
+					w, http.StatusInternalServerError, "Something went wrong",
 				)
 			}
-			return
-		}
-		if res.RowsAffected() == 0 {
-			utils.RespondWithJsonError(
-				w,
-				http.StatusForbidden,
-				"Either this resource does not exist or you cannot access it",
-			)
 			return
 		}
 	}
@@ -237,11 +242,11 @@ func (h *Handler) DeleteResource(w http.ResponseWriter, r *http.Request) {
 // RecommendResource recommend a resource
 func (h *Handler) RecommendResource(w http.ResponseWriter, r *http.Request) {
 	resourceId, _ := strconv.ParseInt(mux.Vars(r)["resourceId"], 10, 64)
-	if resourceId == 0 {
+	if err := utils.ValidateResourceId(resourceId); err != nil {
 		utils.RespondWithError(
 			w,
 			http.StatusBadRequest,
-			"Invalid resource Id in request",
+			err.Error(),
 		)
 		return
 	}

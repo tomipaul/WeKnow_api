@@ -183,6 +183,14 @@ func ValidateUpdateResourcePayload(payload map[string]interface{}) error {
 	return err
 }
 
+// ValidateResourceId verify resource id passed in URL query is valid
+func ValidateResourceId(resourceId int64) error {
+	if resourceId == 0 {
+		return errors.New("Invalid resource Id in request")
+	}
+	return nil
+}
+
 // ValidateNewTags validate the fields of a new tag
 func ValidateNewTags(tags []string) error {
 	var err error
