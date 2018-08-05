@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+var app main.App
+
 var dummyData = map[string]interface{}{
 	"testUser": map[string]interface{}{
 		"username":    "test",
@@ -65,12 +67,7 @@ func setUpApplication() {
 }
 
 func closeDatabase(t *testing.T) {
-	query := `DROP TABLE IF EXISTS users, messages, connections,
-	comments, resources, collections, tags, recommendations,
-	resource_tags, collection_tags, user_connections`
-	if _, err := app.Db.Exec(query); err != nil {
-		t.Fatal(err.Error())
-	}
+	DropSchema(app.Db)
 	if err := app.Db.Close(); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -83,6 +80,7 @@ func initializeDatabase(t *testing.T) {
 		"Database": os.Getenv("TEST_DATABASE"),
 	}
 	app.Db = Connect(dbConfig)
+	CreateSchema(app.Db)
 }
 
 func addTestUser(t *testing.T, testData map[string]interface{}) (User, string) {

@@ -1,7 +1,6 @@
 package main_test
 
 import (
-	main "WeKnow_api"
 	. "WeKnow_api/model"
 	"encoding/json"
 	"fmt"
@@ -16,8 +15,6 @@ import (
 	"github.com/subosito/gotenv"
 )
 
-var app main.App
-
 func TestMain(m *testing.M) {
 	fmt.Println("Loading environment variables...")
 	gotenv.Load()
@@ -30,7 +27,7 @@ func TestMain(m *testing.M) {
 
 	query := `DROP TABLE IF EXISTS users, messages, connections,
 	comments, resources, collections, tags,
-	resource_tags, collection_tags, user_connections`
+	resource_tags, collection_tags, user_connections CASCADE`
 	if _, err := app.Db.Exec(query); err != nil {
 		fmt.Println(err.Error())
 	}

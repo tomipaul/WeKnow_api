@@ -1,25 +1,15 @@
-package model
+package main
 
 import (
+	. "WeKnow_api/model"
+	"fmt"
 	"io/ioutil"
 
-	"github.com/go-pg/pg"
+	"github.com/go-pg/migrations"
 	"github.com/go-pg/pg/orm"
 )
 
-// Connect connect to database and set up tables
-func Connect(config map[string]string) *pg.DB {
-	var dbConfig = &pg.Options{
-		User:     config["User"],
-		Password: config["Password"],
-		Database: config["Database"],
-	}
-	db := pg.Connect(dbConfig)
-	return db
-}
-
-// CreateSchema create database tables
-func CreateSchema(db *pg.DB) error {
+func createSchema(db migrations.DB) error {
 	for _, model := range []interface{}{
 		&User{},
 		&Message{},
@@ -33,7 +23,8 @@ func CreateSchema(db *pg.DB) error {
 		&UserConnection{},
 		&Recommendation{},
 	} {
-		if err := db.CreateTable(
+		if _, err := orm.CreateTable(
+			db,
 			model,
 			&orm.CreateTableOptions{IfNotExists: true, FKConstraints: true},
 		); err != nil {
@@ -50,8 +41,7 @@ func CreateSchema(db *pg.DB) error {
 	return nil
 }
 
-// DropSchema drop database tables
-func DropSchema(db *pg.DB) error {
+func dropSchema(db migrations.DB) error {
 	for _, model := range []interface{}{
 		&User{},
 		&Message{},
@@ -65,7 +55,8 @@ func DropSchema(db *pg.DB) error {
 		&UserConnection{},
 		&Recommendation{},
 	} {
-		if err := db.DropTable(
+		if _, err := orm.DropTable(
+			db,
 			model,
 			&orm.DropTableOptions{IfExists: true, Cascade: true},
 		); err != nil {
@@ -73,4 +64,17 @@ func DropSchema(db *pg.DB) error {
 		}
 	}
 	return nil
+}
+
+func init() {
+	migrations.Register(func(db migrations.DB) error {
+		fmt.Println("creating tables...")
+		err := createSchema(db)
+		return err
+
+	}, func(db migrations.DB) error {
+		fmt.Println("dropping tables...")
+		err := dropSchema(db)
+		return err
+	})
 }
