@@ -298,25 +298,33 @@ func (h *Handler) RecommendResource(w http.ResponseWriter, r *http.Request) {
 // GetResource get a resource
 func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 	resourceId, _ := strconv.ParseInt(mux.Vars(r)["resourceId"], 10, 64)
-	if resourceId == 0 {
+	if err := utils.ValidateResourceId(resourceId); err != nil {
 		utils.RespondWithError(
 			w,
 			http.StatusBadRequest,
-			"Invalid resource Id in request",
+			err.Error(),
 		)
 		return
 	}
+	userId := context.Get(r, "decoded").(jwt.MapClaims)["userId"].(float64)
 	resource := Resource{Id: resourceId}
 
+	condition := `resource.id = ?0 AND
+	(resource.privacy = 'public' OR
+	resource.user_id = ?1 OR
+	(resource.privacy = 'followers' AND
+		(EXISTS(SELECT * FROM connections WHERE initiator_id = ?1 AND
+			recipient_id = resource.user_id))))
+	`
 	err := h.Db.
 		Model(&resource).
-		Column(
-			"resource.*",
-			"User.username",
-			"User.email",
-			"Tags",
+		Column("resource.*", "Tags").
+		ColumnExpr(
+			`a_user.username AS user__username,
+			a_user.email AS user__email`,
 		).
-		Where("resource.id = ?id").
+		Join("JOIN users AS a_user ON a_user.id = resource.user_id").
+		Where(condition, resource.Id, int64(userId)).
 		Select()
 
 	if err != nil {
@@ -324,7 +332,7 @@ func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithError(
 				w,
 				http.StatusNotFound,
-				"Resource does not exist",
+				"Either this resource does not exist or you cannot access it",
 			)
 			return
 		}
