@@ -169,12 +169,45 @@ func TestGetResource(t *testing.T) {
 	defer closeDatabase(t)
 	defer testServer.Close()
 
+	type ExpectedResource struct {
+		Id      int64
+		UserId  int64
+		Title   string
+		Link    string
+		Privacy string
+		Type    string
+		Tags    []*Tag
+	}
+	type ExpectedResponse struct {
+		Resource ExpectedResource
+	}
+
 	testUser := dummyData["testUser"].(map[string]interface{})
 	user, userToken := addTestUser(t, testUser)
 
+	anotherTestUser := dummyData["anotherTestUser"].(map[string]interface{})
+	anotherUser, anotherUserToken := addTestUser(t, anotherTestUser)
+
+	thirdTestUser := dummyData["thirdTestUser"].(map[string]interface{})
+	_, thirdUserToken := addTestUser(t, thirdTestUser)
+
+	testConnectionData := map[string]interface{}{
+		"initiatorId": anotherUser.Id,
+		"recipientId": user.Id,
+	}
+	addTestConnection(t, testConnectionData)
+
 	testResource := dummyData["testResource"].(map[string]interface{})
 	testResource["userId"] = user.Id
-	resource := addTestResource(t, testResource)
+	publicResource := addTestResource(t, testResource)
+
+	testResource = dummyData["privateResource"].(map[string]interface{})
+	testResource["userId"] = user.Id
+	privateResource := addTestResource(t, testResource)
+
+	testResource = dummyData["followersResource"].(map[string]interface{})
+	testResource["userId"] = user.Id
+	followersResource := addTestResource(t, testResource)
 
 	resourceURI := "/api/v1/resource/"
 
@@ -194,42 +227,143 @@ func TestGetResource(t *testing.T) {
 			Set("authorization", userToken).
 			Expect(404).
 			Expect("Content-Type", "application/json").
-			Expect(`{"error":"Resource does not exist"}`).
+			Expect(`{"error":"Either this resource does not exist or you cannot access it"}`).
 			End()
 	})
 
-	t.Run("can get a resource", func(t *testing.T) {
-		type ExpectedResource struct {
-			Id      int64
-			UserId  int64
-			Title   string
-			Link    string
-			Privacy string
-			Type    string
-		}
-		type ExpectedResponse struct {
-			Resource ExpectedResource
-		}
-
+	t.Run("can get a public resource", func(t *testing.T) {
 		expectedResponse := ExpectedResponse{
 			ExpectedResource{
-				resource.Id,
-				resource.UserId,
-				resource.Title,
-				resource.Link,
-				resource.Privacy,
-				resource.Type,
+				publicResource.Id,
+				publicResource.UserId,
+				publicResource.Title,
+				publicResource.Link,
+				publicResource.Privacy,
+				publicResource.Type,
+				publicResource.Tags,
+			},
+		}
+
+		t.Run("if owner", func(t *testing.T) {
+			Request(testServer.URL, t).
+				Get(fmt.Sprintf("%v%v", resourceURI, publicResource.Id)).
+				Set("authorization", userToken).
+				Expect(200).
+				Expect("Content-Type", "application/json").
+				Expect(expectedResponse).
+				End()
+		})
+
+		t.Run("if not owner but a follower of owner", func(t *testing.T) {
+			Request(testServer.URL, t).
+				Get(fmt.Sprintf("%v%v", resourceURI, publicResource.Id)).
+				Set("authorization", anotherUserToken).
+				Expect(200).
+				Expect("Content-Type", "application/json").
+				Expect(expectedResponse).
+				End()
+		})
+
+		t.Run("if not owner and not a follower of owner", func(t *testing.T) {
+			Request(testServer.URL, t).
+				Get(fmt.Sprintf("%v%v", resourceURI, publicResource.Id)).
+				Set("authorization", thirdUserToken).
+				Expect(200).
+				Expect("Content-Type", "application/json").
+				Expect(expectedResponse).
+				End()
+		})
+	})
+
+	t.Run("can get a private resource if owner", func(t *testing.T) {
+		expectedResponse := ExpectedResponse{
+			ExpectedResource{
+				privateResource.Id,
+				privateResource.UserId,
+				privateResource.Title,
+				privateResource.Link,
+				privateResource.Privacy,
+				privateResource.Type,
+				privateResource.Tags,
 			},
 		}
 
 		Request(testServer.URL, t).
-			Get(fmt.Sprintf("%v%v", resourceURI, resource.Id)).
+			Get(fmt.Sprintf("%v%v", resourceURI, privateResource.Id)).
 			Set("authorization", userToken).
 			Expect(200).
 			Expect("Content-Type", "application/json").
 			Expect(expectedResponse).
 			End()
 	})
+
+	t.Run("cannot get private resource if not owner", func(t *testing.T) {
+		t.Run("but a follower of owner", func(t *testing.T) {
+			Request(testServer.URL, t).
+				Get(fmt.Sprintf("%v%v", resourceURI, privateResource.Id)).
+				Set("authorization", anotherUserToken).
+				Expect(404).
+				Expect("Content-Type", "application/json").
+				Expect(`{"error":"Either this resource does not exist or you cannot access it"}`).
+				End()
+		})
+
+		t.Run("and not a follower of owner", func(t *testing.T) {
+			Request(testServer.URL, t).
+				Get(fmt.Sprintf("%v%v", resourceURI, privateResource.Id)).
+				Set("authorization", thirdUserToken).
+				Expect(404).
+				Expect("Content-Type", "application/json").
+				Expect(`{"error":"Either this resource does not exist or you cannot access it"}`).
+				End()
+		})
+	})
+
+	t.Run("can get a resource with privacy follower", func(t *testing.T) {
+		expectedResponse := ExpectedResponse{
+			ExpectedResource{
+				followersResource.Id,
+				followersResource.UserId,
+				followersResource.Title,
+				followersResource.Link,
+				followersResource.Privacy,
+				followersResource.Type,
+				followersResource.Tags,
+			},
+		}
+
+		t.Run("if owner", func(t *testing.T) {
+			Request(testServer.URL, t).
+				Get(fmt.Sprintf("%v%v", resourceURI, followersResource.Id)).
+				Set("authorization", userToken).
+				Expect(200).
+				Expect("Content-Type", "application/json").
+				Expect(expectedResponse).
+				End()
+		})
+
+		t.Run("if a follower of owner", func(t *testing.T) {
+			Request(testServer.URL, t).
+				Get(fmt.Sprintf("%v%v", resourceURI, followersResource.Id)).
+				Set("authorization", anotherUserToken).
+				Expect(200).
+				Expect("Content-Type", "application/json").
+				Expect(expectedResponse).
+				End()
+		})
+	})
+
+	t.Run("cannot get a resource with privacy follower if not a follower of the owner",
+		func(t *testing.T) {
+			Request(testServer.URL, t).
+				Get(fmt.Sprintf("%v%v", resourceURI, followersResource.Id)).
+				Set("authorization", thirdUserToken).
+				Expect(404).
+				Expect("Content-Type", "application/json").
+				Expect(`{"error":"Either this resource does not exist or you cannot access it"}`).
+				End()
+		},
+	)
 }
 
 func TestUpdateResource(t *testing.T) {

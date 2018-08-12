@@ -35,6 +35,20 @@ var dummyData = map[string]interface{}{
 		"privacy": "public",
 		"tags":    []string{"Python", "Fortran", "Lisp"},
 	},
+	"privateResource": map[string]interface{}{
+		"title":   "A private resource",
+		"type":    "textual",
+		"link":    "https://localhost.textual/material/7.pdf",
+		"privacy": "private",
+		"tags":    []string{"Golang", "Rust"},
+	},
+	"followersResource": map[string]interface{}{
+		"title":   "A resource for followers only",
+		"type":    "audio",
+		"link":    "https://localhost.textual/material/8.pdf",
+		"privacy": "followers",
+		"tags":    []string{"JavaScript", "Scala"},
+	},
 	"collection1": map[string]interface{}{
 		"name": "first collection",
 	},
@@ -126,6 +140,7 @@ func addTestResource(t *testing.T, testData map[string]interface{}) Resource {
 				TagId:      tag.(*Tag).Id,
 				ResourceId: resource.Id,
 			})
+			resource.Tags = append(resource.Tags, tag.(*Tag))
 		}
 		if err := app.Db.Insert(resourceTags...); err != nil {
 			t.Fatal(err.Error())
@@ -162,4 +177,15 @@ func addTestCollection(t *testing.T, testData map[string]interface{}) Collection
 
 	return testCollection
 
+}
+
+func addTestConnection(t *testing.T, testData map[string]interface{}) {
+	testConnection := Connection{
+		InitiatorId: testData["initiatorId"].(int64),
+		RecipientId: testData["recipientId"].(int64),
+	}
+
+	if err := app.Db.Insert(&testConnection); err != nil {
+		t.Fatal(err.Error())
+	}
 }

@@ -157,7 +157,7 @@ type Resource struct {
 	Recommendations int64      `json:",omitempty"`
 	User            *User      `json:",omitempty"`
 	Comments        []*Comment `json:",omitempty"`
-	Tags            []Tag      `pg:",many2many:resource_tags" json:",omitempty"`
+	Tags            []*Tag     `pg:",many2many:resource_tags" json:",omitempty"`
 	BaseModel
 }
 
