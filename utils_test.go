@@ -3,6 +3,7 @@ package main_test
 import (
 	main "WeKnow_api"
 	. "WeKnow_api/model"
+	"WeKnow_api/utilities"
 	"os"
 	"testing"
 )
@@ -71,7 +72,7 @@ func initializeDatabase(t *testing.T) {
 		"Password": os.Getenv("TEST_DB_PASSWORD"),
 		"Database": os.Getenv("TEST_DATABASE"),
 	}
-	app.Db = Connect(dbConfig)
+	app.Db = utilities.Connect(dbConfig)
 	CreateSchema(app.Db)
 }
 

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"WeKnow_api/utilities"
+
 	"github.com/go-pg/migrations"
 	"github.com/go-pg/pg"
 	"github.com/subosito/gotenv"
@@ -22,33 +24,18 @@ Usage:
 
 func main() {
 	gotenv.Load()
-	var env string
-	var db *pg.DB
-
-	flag.StringVar(
-		&env,
-		"env",
-		"dev",
-		"Run migration for specified environment")
 
 	flag.Usage = usage
 	flag.Parse()
 
-	if env == "test" {
-		db = pg.Connect(&pg.Options{
-			User:     os.Getenv("TEST_DB_USERNAME"),
-			Password: os.Getenv("TEST_DB_PASSWORD"),
-			Database: os.Getenv("TEST_DATABASE"),
-		})
-	} else {
-		db = pg.Connect(&pg.Options{
-			User:     os.Getenv("DB_USERNAME"),
-			Password: os.Getenv("DB_PASSWORD"),
-			Database: os.Getenv("DATABASE"),
-		})
-	}
+	config := utilities.GetDatabaseCredentials()
+	db := utilities.Connect(config)
 
-	oldVersion, newVersion, err := migrations.Run(db, flag.Args()...)
+	var oldVersion, newVersion int64
+	err := db.RunInTransaction(func(tx *pg.Tx) (err error) {
+		oldVersion, newVersion, err = migrations.Run(db, flag.Args()...)
+		return err
+	})
 	if err != nil {
 		exitf(err.Error())
 	}

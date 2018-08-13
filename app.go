@@ -3,7 +3,7 @@ package main
 import (
 	"WeKnow_api/handler"
 	"WeKnow_api/middleware"
-	"WeKnow_api/model"
+	"WeKnow_api/utilities"
 	"net/http"
 
 	"github.com/go-pg/pg"
@@ -13,7 +13,7 @@ import (
 // CreateApp create a new instance of the app
 func CreateApp(config map[string]string) App {
 	router := mux.NewRouter()
-	db := model.Connect(config)
+	db := utilities.Connect(config)
 	app := App{
 		router,
 		db,
