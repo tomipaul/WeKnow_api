@@ -1,6 +1,6 @@
 ALTER TABLE user_connections
-ADD FOREIGN KEY(user_id) REFERENCES users (id),
-ADD FOREIGN KEY(connection_id) REFERENCES connections (id);
+ADD FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE,
+ADD FOREIGN KEY(connection_id) REFERENCES connections (id) ON DELETE CASCADE;
 ALTER TABLE resources
 ADD FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE;
 ALTER TABLE resource_tags
@@ -10,8 +10,8 @@ ALTER TABLE recommendations
 ADD FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE,
 ADD FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE;
 ALTER TABLE comments
-ADD FOREIGN KEY(user_id) REFERENCES users (id),
-ADD FOREIGN KEY(resource_id) REFERENCES resources (id);
+ADD FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE,
+ADD FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE;
 ALTER TABLE resource_collections
 ADD FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE,
 ADD FOREIGN KEY(collection_id) REFERENCES collections (id) ON DELETE CASCADE;

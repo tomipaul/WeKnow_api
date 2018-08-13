@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"WeKnow_api/utilities"
+
 	"github.com/subosito/gotenv"
 )
 
@@ -11,18 +13,7 @@ func main() {
 	gotenv.Load()
 
 	// Get database credentials from env vars
-	var dbConfig map[string]string
-	if val, ok := os.LookupEnv("DATABASE_URL"); ok {
-		dbConfig = map[string]string{
-			"DATABASE_URL": val,
-		}
-	} else {
-		dbConfig = map[string]string{
-			"User":     os.Getenv("DB_USERNAME"),
-			"Password": os.Getenv("DB_PASSWORD"),
-			"Database": os.Getenv("DATABASE"),
-		}
-	}
+	dbConfig := utilities.GetDatabaseCredentials()
 
 	// Create an instance of the application
 	app := CreateApp(dbConfig)

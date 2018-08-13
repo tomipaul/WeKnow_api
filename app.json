@@ -4,15 +4,13 @@
   "scripts": {
   },
   "env": {
-    "DATABASE_URL": {
-      "required": true
-    },
     "JWT_SECRET": {
       "required": true
     },
     "ISSUER": {
       "required": true
-    }
+    },
+    "USE_DATABASE_URL": "DATABASE_URL"
   },
   "formation": {
   },
