@@ -5,6 +5,7 @@ import (
 	utils "WeKnow_api/utilities"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-pg/pg"
@@ -60,4 +61,53 @@ func (h *Handler) AddComment(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithJson(w, http.StatusOK, payload)
 	}
 	return
+}
+
+// GetComments get comments filtered by resource
+func (h *Handler) GetComments(w http.ResponseWriter, r *http.Request) {
+	queryValues := r.URL.Query()
+	if err := utils.ValidateQueryParams(queryValues); err != nil {
+		utils.RespondWithError(
+			w, http.StatusBadRequest,
+			err.Error(),
+		)
+		return
+	}
+	var values []interface{}
+	var condition string
+	resourceId := queryValues.Get("resourceId")
+	if resourceId != "" {
+		id, _ := strconv.ParseInt(resourceId, 10, 64)
+		if err := utils.ValidateResourceId(id); err != nil {
+			utils.RespondWithError(
+				w, http.StatusBadRequest,
+				err.Error(),
+			)
+			return
+		}
+		condition += "resource_id = ?0"
+		values = append(values, id)
+	}
+	if condition == "" {
+		utils.RespondWithError(
+			w, http.StatusBadRequest,
+			"No expected query parameters in request",
+		)
+		return
+	}
+	var comments []Comment
+	err := h.Db.Model(&comments).
+		Where(condition, values...).
+		Select()
+	if err != nil {
+		utils.RespondWithError(
+			w, http.StatusInternalServerError,
+			"Something went wrong",
+		)
+	} else {
+		payload := map[string]interface{}{
+			"comments": comments,
+		}
+		utils.RespondWithJson(w, http.StatusOK, payload)
+	}
 }

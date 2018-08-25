@@ -4,6 +4,7 @@ import (
 	. "WeKnow_api/model"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 )
@@ -220,4 +221,12 @@ func ValidateNewComment(comment *Comment) error {
 		)
 	}
 	return err
+}
+
+// ValidateQueryParams validate query parameters
+func ValidateQueryParams(queryValues url.Values) error {
+	if queryValues == nil || len(queryValues) == 0 {
+		return errors.New("No query parameters in request")
+	}
+	return nil
 }

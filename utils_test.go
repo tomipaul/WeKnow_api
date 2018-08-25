@@ -62,6 +62,15 @@ var dummyData = map[string]interface{}{
 		"phoneNumber": "08123425634",
 		"password":    "uzumaki",
 	},
+	"testComment1": map[string]interface{}{
+		"text": "This is the first comment",
+	},
+	"testComment2": map[string]interface{}{
+		"text": "This is the second comment",
+	},
+	"testComment3": map[string]interface{}{
+		"text": "This is the third comment",
+	},
 }
 
 func setUpApplication() {
@@ -156,7 +165,7 @@ func addTestComment(t *testing.T, testData map[string]interface{}) Comment {
 	userId := testData["userId"].(int64)
 
 	comment := Comment{
-		Text:       testData["commentText"].(string),
+		Text:       testData["text"].(string),
 		UserId:     userId,
 		ResourceId: resourceId,
 	}
