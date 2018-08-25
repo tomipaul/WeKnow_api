@@ -129,4 +129,7 @@ func (app App) declareRoutes() {
 	commentSubRouter.
 		HandleFunc("", hr.AddComment).
 		Methods("POST")
+	commentSubRouter.
+		HandleFunc("", hr.GetComments).
+		Methods("GET")
 }

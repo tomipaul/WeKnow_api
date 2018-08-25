@@ -3,13 +3,14 @@ package main_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"testing"
 
 	. "WeKnow_api/libs/supertest"
-
-	"testing"
+	. "WeKnow_api/model"
 )
 
 func TestAddComment(t *testing.T) {
@@ -214,4 +215,123 @@ func TestAddComment(t *testing.T) {
 				expectedMessage, obtainedResponseMessage)
 		}
 	})
+}
+
+func TestGetComments(t *testing.T) {
+	initializeDatabase(t)
+	testServer := httptest.NewServer(app.Router)
+	defer closeDatabase(t)
+	defer testServer.Close()
+
+	type ExpectedComment struct {
+		Id         int64
+		UserId     int64
+		ResourceId int64
+		Likes      int64
+		Text       string
+	}
+	type ExpectedResponse struct {
+		Comments []ExpectedComment
+	}
+
+	testUser := dummyData["testUser"].(map[string]interface{})
+	user, userToken := addTestUser(t, testUser)
+
+	testResource := dummyData["testResource"].(map[string]interface{})
+	testResource["userId"] = user.Id
+	resource := addTestResource(t, testResource)
+
+	testCommentsTitle := []string{
+		"testComment1",
+		"testComment2",
+		"testComment3",
+	}
+	var testComments []Comment
+	for _, comment := range testCommentsTitle {
+		testComment := dummyData[comment].(map[string]interface{})
+		testComment["userId"] = user.Id
+		testComment["resourceId"] = resource.Id
+		testComments = append(
+			testComments,
+			addTestComment(t, testComment),
+		)
+	}
+
+	commentURI := "/api/v1/comment"
+	commentURIWithQuery := fmt.Sprintf(
+		"%v?resourceId=%v",
+		commentURI, resource.Id,
+	)
+
+	t.Run("cannot get comments when query params is empty", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Get(commentURI).
+			Set("authorization", userToken).
+			Expect(400).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error":"No query parameters in request"}`).
+			End()
+	})
+
+	t.Run("cannot get comments when no expected query param in request",
+		func(t *testing.T) {
+			Request(testServer.URL, t).
+				Get(fmt.Sprintf("%v?invalidQuery=", commentURI)).
+				Set("authorization", userToken).
+				Expect(400).
+				Expect("Content-Type", "application/json").
+				Expect(`{"error":"No expected query parameters in request"}`).
+				End()
+		},
+	)
+
+	t.Run("cannot get comments when resourceId is 0", func(t *testing.T) {
+		Request(testServer.URL, t).
+			Get(fmt.Sprintf("%v?resourceId=%v", commentURI, 0)).
+			Set("authorization", userToken).
+			Expect(400).
+			Expect("Content-Type", "application/json").
+			Expect(`{"error":"Invalid resource Id in request"}`).
+			End()
+	})
+
+	t.Run("can get comments filtered by resourceId ", func(t *testing.T) {
+		var expectedComments []ExpectedComment
+		for _, comment := range testComments {
+			expectedComment := ExpectedComment{
+				comment.Id,
+				comment.UserId,
+				comment.ResourceId,
+				comment.Likes,
+				comment.Text,
+			}
+			expectedComments = append(
+				expectedComments,
+				expectedComment,
+			)
+		}
+		expectedResponse := ExpectedResponse{
+			expectedComments,
+		}
+
+		Request(testServer.URL, t).
+			Get(commentURIWithQuery).
+			Set("authorization", userToken).
+			Expect(200).
+			Expect("Content-Type", "application/json").
+			Expect(expectedResponse).
+			End()
+	})
+
+	t.Run("return null for nonexisting resource or no comments",
+		func(t *testing.T) {
+			Request(testServer.URL, t).
+				Get(fmt.Sprintf("%v?resourceId=%v", commentURI, 100)).
+				Set("authorization", userToken).
+				Expect(200).
+				Expect("Content-Type", "application/json").
+				Expect(`{"comments":null}`).
+				End()
+		},
+	)
 }
