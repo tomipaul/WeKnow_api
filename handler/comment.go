@@ -9,6 +9,7 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/orm"
 	"github.com/gorilla/context"
 
 	"net/http"
@@ -96,9 +97,10 @@ func (h *Handler) GetComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var comments []Comment
-	err := h.Db.Model(&comments).
+	count, err := h.Db.Model(&comments).
 		Where(condition, values...).
-		Select()
+		Apply(orm.Pagination(r.URL.Query())).
+		SelectAndCount()
 	if err != nil {
 		utils.RespondWithError(
 			w, http.StatusInternalServerError,
@@ -106,7 +108,8 @@ func (h *Handler) GetComments(w http.ResponseWriter, r *http.Request) {
 		)
 	} else {
 		payload := map[string]interface{}{
-			"comments": comments,
+			"totalCount": count,
+			"comments":   comments,
 		}
 		utils.RespondWithJson(w, http.StatusOK, payload)
 	}

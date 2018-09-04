@@ -12,6 +12,7 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/orm"
 
 	"github.com/gorilla/context"
 )
@@ -161,7 +162,7 @@ func (h *Handler) GetAllFavorites(w http.ResponseWriter, r *http.Request) {
 	decodedClaims := context.Get(r, "decoded")
 	userId := decodedClaims.(jwt.MapClaims)["userId"].(float64)
 	var connection []Connection
-	err := h.Db.Model(&connection).
+	count, err := h.Db.Model(&connection).
 		Column(
 			"connection.id",
 			"initiator_id",
@@ -172,14 +173,16 @@ func (h *Handler) GetAllFavorites(w http.ResponseWriter, r *http.Request) {
 			"Recipient.username",
 		).
 		Where("initiator_id = ?", int(userId)).
-		Select()
+		Apply(orm.Pagination(r.URL.Query())).
+		SelectAndCount()
 	if err != nil {
 		utils.RespondWithError(
 			w, http.StatusInternalServerError,
 			"Something went wong",
 		)
 	} else {
-		payload := map[string][]Connection{
+		payload := map[string]interface{}{
+			"totalCount":  count,
 			"connections": connection,
 		}
 		utils.RespondWithJson(w, http.StatusOK, payload)
@@ -192,7 +195,7 @@ func (h *Handler) GetAllFollowers(w http.ResponseWriter, r *http.Request) {
 	decodedClaims := context.Get(r, "decoded")
 	userId := decodedClaims.(jwt.MapClaims)["userId"].(float64)
 	var connection []Connection
-	err := h.Db.Model(&connection).
+	count, err := h.Db.Model(&connection).
 		Column(
 			"connection.id",
 			"initiator_id",
@@ -203,14 +206,16 @@ func (h *Handler) GetAllFollowers(w http.ResponseWriter, r *http.Request) {
 			"Initiator.username",
 		).
 		Where("recipient_id = ?", int(userId)).
-		Select()
+		Apply(orm.Pagination(r.URL.Query())).
+		SelectAndCount()
 	if err != nil {
 		utils.RespondWithError(
 			w, http.StatusInternalServerError,
 			"Something went wong",
 		)
 	} else {
-		payload := map[string][]Connection{
+		payload := map[string]interface{}{
+			"totalCount":  count,
 			"connections": connection,
 		}
 		utils.RespondWithJson(w, http.StatusOK, payload)

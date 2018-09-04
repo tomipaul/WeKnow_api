@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 
@@ -13,22 +14,33 @@ import (
 
 var valueMap interface{}
 
-func TestCollection(t *testing.T) {
+func TestGetAllCollection(t *testing.T) {
 
 	initializeDatabase(t)
 	testServer := httptest.NewServer(app.Router)
 	defer closeDatabase(t)
 	defer testServer.Close()
 
+	type ExpectedCollection struct {
+		Id     int64
+		Name   string
+		UserId int64
+	}
+	type ExpectedResponse struct {
+		Collections []ExpectedCollection
+		TotalCount  int
+	}
+
 	testUser := dummyData["naruto"].(map[string]interface{})
 	user, userToken := addTestUser(t, testUser)
 
-	testCollection1 := dummyData["collection1"].(map[string]interface{})
-	testCollection2 := dummyData["collection2"].(map[string]interface{})
-	testCollection1["userId"] = user.Id
-	testCollection2["userId"] = user.Id
-	addTestCollection(t, testCollection1)
-	addTestCollection(t, testCollection2)
+	testCollDummy1 := dummyData["collection1"].(map[string]interface{})
+	testCollDummy2 := dummyData["collection2"].(map[string]interface{})
+	testCollDummy1["userId"] = user.Id
+	testCollDummy2["userId"] = user.Id
+	testColl1 := addTestCollection(t, testCollDummy1)
+	testColl2 := addTestCollection(t, testCollDummy2)
+	totalTestCollections := 2
 
 	t.Run("can get all user's collections", func(t *testing.T) {
 
@@ -50,7 +62,7 @@ func TestCollection(t *testing.T) {
 		}
 
 		keys := []string{}
-		expectedKey := "collections"
+		expectedKey := `["collections","totalCount"]`
 		expectedFirstCollectionName := "first collection"
 		expectedSecondCollectionName := "second collection"
 
@@ -61,6 +73,8 @@ func TestCollection(t *testing.T) {
 			valueMap = value
 
 		}
+		// ensure that response keys are sorted in slice
+		sort.Strings(keys)
 
 		obtainedFirstCollectionName := responseMap["collections"].([]interface{})[0].(map[string]interface{})["Name"]
 		obtainedSecondCollectionName := responseMap["collections"].([]interface{})[1].(map[string]interface{})["Name"]
@@ -73,8 +87,9 @@ func TestCollection(t *testing.T) {
 			t.Fatalf("Expected name %q; Got name %q", expectedSecondCollectionName, obtainedSecondCollectionName)
 		}
 
-		if keys[0] != expectedKey {
-			t.Fatalf("Expected key %q; Got key %q", expectedKey, keys[0])
+		keyByte, _ := json.Marshal(keys)
+		if string(keyByte) != expectedKey {
+			t.Fatalf("Expected keys %q; Got keys %q", expectedKey, string(keyByte))
 		}
 
 		expectedStatusCode := 200
@@ -90,6 +105,57 @@ func TestCollection(t *testing.T) {
 			t.Fatalf("Expected content-type %q; Got content-type %q",
 				expectedContentType, obtainedContentType)
 		}
+	})
+
+	t.Run("can paginate user's collections", func(t *testing.T) {
+		expectedCollections := []ExpectedCollection{
+			ExpectedCollection{
+				testColl2.Id,
+				testColl2.Name,
+				testColl2.UserId,
+			},
+		}
+		expectedResponse := ExpectedResponse{
+			expectedCollections,
+			totalTestCollections,
+		}
+
+		Request(testServer.URL, t).
+			Get(fmt.Sprintf(
+				"api/v1/collection?limit=%v&page=%v", 1, 2)).
+			Set("authorization", userToken).
+			Expect(200).
+			Expect("Content-Type", "application/json").
+			Expect(expectedResponse).
+			End()
+	})
+
+	t.Run("can paginate user's collections", func(t *testing.T) {
+		expectedCollections := []ExpectedCollection{
+			ExpectedCollection{
+				testColl1.Id,
+				testColl1.Name,
+				testColl1.UserId,
+			},
+			ExpectedCollection{
+				testColl2.Id,
+				testColl2.Name,
+				testColl2.UserId,
+			},
+		}
+		expectedResponse := ExpectedResponse{
+			expectedCollections,
+			totalTestCollections,
+		}
+
+		Request(testServer.URL, t).
+			Get(fmt.Sprintf(
+				"api/v1/collection?limit=%v&page=%v", 2, 1)).
+			Set("authorization", userToken).
+			Expect(200).
+			Expect("Content-Type", "application/json").
+			Expect(expectedResponse).
+			End()
 	})
 }
 
