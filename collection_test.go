@@ -76,6 +76,8 @@ func TestGetAllCollection(t *testing.T) {
 		// ensure that response keys are sorted in slice
 		sort.Strings(keys)
 
+		fmt.Println(responseMap)
+
 		obtainedFirstCollectionName := responseMap["collections"].([]interface{})[0].(map[string]interface{})["Name"]
 		obtainedSecondCollectionName := responseMap["collections"].([]interface{})[1].(map[string]interface{})["Name"]
 
