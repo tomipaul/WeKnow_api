@@ -10,6 +10,12 @@
     "ISSUER": {
       "required": true
     },
+    "DEFAULT_PAGE": {
+      "required": true
+    },
+    "DEFAULT_LIMIT": {
+      "required": true
+    },
     "USE_DATABASE_URL": "DATABASE_URL"
   },
   "formation": {

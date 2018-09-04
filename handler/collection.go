@@ -10,6 +10,7 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/orm"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
@@ -48,12 +49,13 @@ func (h *Handler) GetAllCollections(w http.ResponseWriter, r *http.Request) {
 
 	var collections []Collection
 
-	err := h.Db.Model(&collections).
+	count, err := h.Db.Model(&collections).
 		Column(
 			"collection.*",
 		).
 		Where("collection.user_id = ?", int(userId)).
-		Select()
+		Apply(orm.Pagination(r.URL.Query())).
+		SelectAndCount()
 	if err != nil {
 		utils.RespondWithError(
 			w,
@@ -61,7 +63,8 @@ func (h *Handler) GetAllCollections(w http.ResponseWriter, r *http.Request) {
 			"Something went wrong",
 		)
 	} else {
-		payload := map[string][]Collection{
+		payload := map[string]interface{}{
+			"totalCount":  count,
 			"collections": collections,
 		}
 		utils.RespondWithJson(w, http.StatusOK, payload)

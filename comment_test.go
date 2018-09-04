@@ -231,7 +231,8 @@ func TestGetComments(t *testing.T) {
 		Text       string
 	}
 	type ExpectedResponse struct {
-		Comments []ExpectedComment
+		Comments   []ExpectedComment
+		TotalCount int
 	}
 
 	testUser := dummyData["testUser"].(map[string]interface{})
@@ -263,16 +264,6 @@ func TestGetComments(t *testing.T) {
 		commentURI, resource.Id,
 	)
 
-	t.Run("cannot get comments when query params is empty", func(t *testing.T) {
-		Request(testServer.URL, t).
-			Get(commentURI).
-			Set("authorization", userToken).
-			Expect(400).
-			Expect("Content-Type", "application/json").
-			Expect(`{"error":"No query parameters in request"}`).
-			End()
-	})
-
 	t.Run("cannot get comments when no expected query param in request",
 		func(t *testing.T) {
 			Request(testServer.URL, t).
@@ -296,6 +287,11 @@ func TestGetComments(t *testing.T) {
 	})
 
 	t.Run("can get comments filtered by resourceId ", func(t *testing.T) {
+		customvars := map[string]string{
+			"DEFAULT_PAGE":  "1",
+			"DEFAULT_LIMIT": "3",
+		}
+		customizeEnvVariables(t, customvars)
 		var expectedComments []ExpectedComment
 		for _, comment := range testComments {
 			expectedComment := ExpectedComment{
@@ -310,8 +306,10 @@ func TestGetComments(t *testing.T) {
 				expectedComment,
 			)
 		}
+		totalCount := len(testComments)
 		expectedResponse := ExpectedResponse{
 			expectedComments,
+			totalCount,
 		}
 
 		Request(testServer.URL, t).
@@ -330,8 +328,71 @@ func TestGetComments(t *testing.T) {
 				Set("authorization", userToken).
 				Expect(200).
 				Expect("Content-Type", "application/json").
-				Expect(`{"comments":null}`).
+				Expect(`{"comments":null, "totalCount":0}`).
 				End()
 		},
 	)
+
+	t.Run("can paginate comments filtered by resourceId", func(t *testing.T) {
+		var expectedComments []ExpectedComment
+		for _, comment := range testComments[:2] {
+			expectedComment := ExpectedComment{
+				comment.Id,
+				comment.UserId,
+				comment.ResourceId,
+				comment.Likes,
+				comment.Text,
+			}
+			expectedComments = append(
+				expectedComments,
+				expectedComment,
+			)
+		}
+		totalCount := len(testComments)
+		expectedResponse := ExpectedResponse{
+			expectedComments,
+			totalCount,
+		}
+
+		Request(testServer.URL, t).
+			Get(fmt.Sprintf(
+				"%v&limit=%v&page=%v",
+				commentURIWithQuery, 2, 1)).
+			Set("authorization", userToken).
+			Expect(200).
+			Expect("Content-Type", "application/json").
+			Expect(expectedResponse).
+			End()
+	})
+
+	t.Run("can paginate comments filtered by resourceId", func(t *testing.T) {
+		var expectedComments []ExpectedComment
+		comment := testComments[2]
+		expectedComment := ExpectedComment{
+			comment.Id,
+			comment.UserId,
+			comment.ResourceId,
+			comment.Likes,
+			comment.Text,
+		}
+		expectedComments = append(
+			expectedComments,
+			expectedComment,
+		)
+		totalCount := len(testComments)
+		expectedResponse := ExpectedResponse{
+			expectedComments,
+			totalCount,
+		}
+
+		Request(testServer.URL, t).
+			Get(fmt.Sprintf(
+				"%v&limit=%v&page=%v",
+				commentURIWithQuery, 2, 2)).
+			Set("authorization", userToken).
+			Expect(200).
+			Expect("Content-Type", "application/json").
+			Expect(expectedResponse).
+			End()
+	})
 }

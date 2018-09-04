@@ -4,6 +4,7 @@ import (
 	main "WeKnow_api"
 	. "WeKnow_api/model"
 	"WeKnow_api/utilities"
+	"fmt"
 	"os"
 	"testing"
 )
@@ -197,5 +198,16 @@ func addTestConnection(t *testing.T, testData map[string]interface{}) {
 
 	if err := app.Db.Insert(&testConnection); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func customizeEnvVariables(t *testing.T, variables map[string]string) {
+	for key, val := range variables {
+		if err := os.Setenv(key, val); err != nil {
+			t.Fatal(fmt.Sprintf(
+				"Failure setting environment variable %v",
+				key,
+			))
+		}
 	}
 }

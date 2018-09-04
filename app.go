@@ -42,12 +42,13 @@ func (app App) declareRoutes() {
 	hr := &handler.Handler{Db: app.Db}
 	mwr := &middleware.Middleware{Db: app.Db}
 
-	r := app.Router
-	pr := r.NewRoute().Subrouter()
-
 	// Routes consist of a path and a handler function.
+	r := app.Router
+
 	// Middleware Log all requests to the application
 	r.Use(mwr.LogRequest)
+	// Middleware Set default limit and offset for bulk data requests
+	r.Use(mwr.Paginate)
 
 	// Middleware Check if request body is empty for POST and PUT requests
 	r.Use(mwr.CheckRequestBody)
@@ -64,6 +65,7 @@ func (app App) declareRoutes() {
 		HandleFunc("/signin", hr.UserSignInEndPoint).
 		Methods("POST")
 
+	pr := r.NewRoute().Subrouter()
 	// Middleware Protect data endpoints
 	pr.Use(mwr.AuthorizeRequest)
 
