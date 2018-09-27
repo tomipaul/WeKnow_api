@@ -18,6 +18,7 @@ type Agent struct {
 	asserts          [][]interface{}
 	agent            *gorequest.SuperAgent
 	structFieldsOnly bool
+	debug            bool
 }
 
 func Request(host string, ts ...*testing.T) *Agent {
@@ -124,6 +125,12 @@ func (r *Agent) IncludeStructFieldsOnly() *Agent {
 	return r
 }
 
+// Debug print out response if debug mode
+func (r *Agent) Debug() *Agent {
+	r.debug = true
+	return r
+}
+
 func (r *Agent) throw(err error) {
 	if r.t != nil {
 		r.t.Error(err)
@@ -225,6 +232,24 @@ func (r *Agent) checkHeader(header http.Header, key, val interface{}) {
 func (r *Agent) checkBody(tobe interface{}, body, derived []byte, contentType string) {
 	var expect string
 	var bodyString string
+
+	if r.debug {
+		outString := ".......\nDEBUG\n%v\n%v\n......."
+		debugbody := fmt.Sprintf(
+			outString,
+			"BODY",
+			string(body[0:len(body)]),
+		)
+		fmt.Println(debugbody)
+		if len(derived) != 0 {
+			debugderived := fmt.Sprintf(
+				outString,
+				"DERIVED",
+				string(derived[0:len(derived)]),
+			)
+			fmt.Println(debugderived)
+		}
+	}
 
 	if strings.HasPrefix(contentType, "application/json") {
 		if getType(tobe) == "string" {
