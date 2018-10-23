@@ -37,11 +37,12 @@ var dummyData = map[string]interface{}{
 		"tags":    []string{"Python", "Fortran", "Lisp"},
 	},
 	"privateResource": map[string]interface{}{
-		"title":   "A private resource",
-		"type":    "textual",
-		"link":    "https://localhost.textual/material/7.pdf",
-		"privacy": "private",
-		"tags":    []string{"Golang", "Rust"},
+		"title":           "A private resource",
+		"type":            "textual",
+		"link":            "https://localhost.textual/material/7.pdf",
+		"privacy":         "private",
+		"tags":            []string{"Golang", "Rust"},
+		"recommendations": int64(1),
 	},
 	"followersResource": map[string]interface{}{
 		"title":   "A resource for followers only",
@@ -49,6 +50,13 @@ var dummyData = map[string]interface{}{
 		"link":    "https://localhost.textual/material/8.pdf",
 		"privacy": "followers",
 		"tags":    []string{"JavaScript", "Scala"},
+	},
+	"topRatedResource": map[string]interface{}{
+		"title":           "A top rated resource",
+		"type":            "textual",
+		"link":            "https://localhost.textual/material/9.pdf",
+		"privacy":         "public",
+		"recommendations": int64(10),
 	},
 	"collection1": map[string]interface{}{
 		"name": "first collection",
@@ -120,13 +128,18 @@ func addTestUser(t *testing.T, testData map[string]interface{}) (User, string) {
 
 func addTestResource(t *testing.T, testData map[string]interface{}) Resource {
 	userId := testData["userId"].(int64)
+	var recommendations int64
+	if testData["recommendations"] != nil {
+		recommendations = testData["recommendations"].(int64)
+	}
 
 	resource := Resource{
-		Title:   testData["title"].(string),
-		Type:    testData["type"].(string),
-		Link:    testData["link"].(string),
-		Privacy: testData["privacy"].(string),
-		UserId:  userId,
+		Title:           testData["title"].(string),
+		Type:            testData["type"].(string),
+		Link:            testData["link"].(string),
+		Privacy:         testData["privacy"].(string),
+		Recommendations: recommendations,
+		UserId:          userId,
 	}
 
 	if err := app.Db.Insert(&resource); err != nil {

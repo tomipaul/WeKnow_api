@@ -111,6 +111,9 @@ func (app App) declareRoutes() {
 	resourceSubRouter.
 		HandleFunc("/recommend/{resourceId:[0-9]+}", hr.RecommendResource).
 		Methods("GET")
+	resourceSubRouter.
+		HandleFunc("/", hr.GetTopRatedResources).
+		Methods("GET")
 
 	resourceTagsSubRouter := resourceSubRouter.NewRoute().Subrouter()
 	// Middleware For added tags; select if exists else create and select

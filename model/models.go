@@ -154,7 +154,7 @@ type Resource struct {
 	Privacy         string     `sql:",notnull" json:",omitempty"`
 	Type            string     `sql:",notnull" json:",omitempty"`
 	Views           int64      `json:",omitempty"`
-	Recommendations int64      `json:",omitempty"`
+	Recommendations int64      `sql:",notnull" json:",omitempty"`
 	User            *User      `json:",omitempty"`
 	Comments        []*Comment `json:",omitempty"`
 	Tags            []*Tag     `pg:",many2many:resource_tags" json:",omitempty"`

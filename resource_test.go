@@ -209,6 +209,10 @@ func TestGetResource(t *testing.T) {
 	testResource["userId"] = user.Id
 	followersResource := addTestResource(t, testResource)
 
+	topRatedResource := dummyData["topRatedResource"].(map[string]interface{})
+	topRatedResource["userId"] = user.Id
+	addTestResource(t, topRatedResource)
+
 	resourceURI := "/api/v1/resource/"
 
 	t.Run("cannot get resource with id 0", func(t *testing.T) {
@@ -364,6 +368,58 @@ func TestGetResource(t *testing.T) {
 				End()
 		},
 	)
+
+	t.Run("can get all top rated resources", func(t *testing.T) {
+
+		client := testServer.Client()
+		uri := testServer.URL + resourceURI
+		request, err := http.NewRequest("GET", uri, nil)
+		if err != nil {
+			t.Log(err)
+		}
+		request.Header.Set("authorization", userToken)
+
+		response, err := client.Do(request)
+
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+
+		var responseMap map[string]interface{}
+
+		dec := json.NewDecoder(response.Body)
+
+		dec.UseNumber()
+
+		dec.Decode(&responseMap)
+
+		expectedResourceTitle1 := "A top rated resource"
+		actualResourceTitle1 := responseMap["resources"].([]interface{})[0].(map[string]interface{})["Title"]
+
+		actualResourceTitle2 := responseMap["resources"].([]interface{})[0].(map[string]interface{})["Title"]
+
+		expectedRecommendations1 := int64(10)
+		actualRecommendations1 := responseMap["resources"].([]interface{})[0].(map[string]interface{})["Recommendations"]
+
+		actualRecommendations2 := responseMap["resources"].([]interface{})[1].(map[string]interface{})["Recommendations"]
+
+		aR1, _ := actualRecommendations1.(json.Number).Int64()
+
+		aR2, _ := actualRecommendations2.(json.Number).Int64()
+
+		if expectedRecommendations1 != aR1 {
+			t.Fatalf("Expected resource recommendations %v to equal %v", aR1, expectedRecommendations1)
+		}
+
+		if aR1 < aR2 {
+			t.Fatalf("Expected resource %s to come before resource %s", actualResourceTitle1, actualResourceTitle2)
+		}
+
+		if expectedResourceTitle1 != actualResourceTitle1 {
+			t.Fatalf("Expected resource title %s to equal %s", actualResourceTitle1, expectedResourceTitle1)
+		}
+
+	})
 }
 
 func TestUpdateResource(t *testing.T) {

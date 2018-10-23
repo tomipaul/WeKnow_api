@@ -4,6 +4,7 @@ import (
 	. "WeKnow_api/model"
 	utils "WeKnow_api/utilities"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -344,6 +345,47 @@ func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 	} else {
 		payload := map[string]interface{}{
 			"resource": resource,
+		}
+		utils.RespondWithJson(w, http.StatusOK, payload)
+	}
+	return
+}
+
+// GetTopRatedResources get all top rated resources
+func (h *Handler) GetTopRatedResources(w http.ResponseWriter, r *http.Request) {
+
+	var resources []Resource
+
+	err := h.Db.Model(&resources).
+		Column("resource.id",
+			"resource.title",
+			"resource.link",
+			"resource.recommendations",
+			"resource.created_at",
+			"resource.updated_at",
+		).
+		Group("resource.id").
+		OrderExpr("resource.recommendations DESC").
+		Select()
+
+	if err != nil {
+		if err == pg.ErrNoRows {
+			utils.RespondWithError(
+				w,
+				http.StatusNotFound,
+				"No resources added yet",
+			)
+			return
+		}
+		fmt.Println(err)
+		utils.RespondWithError(
+			w,
+			http.StatusInternalServerError,
+			"Something went wrong",
+		)
+	} else {
+		payload := map[string]interface{}{
+			"resources": resources,
 		}
 		utils.RespondWithJson(w, http.StatusOK, payload)
 	}
